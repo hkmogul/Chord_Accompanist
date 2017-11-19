@@ -6,6 +6,15 @@ def nextpow2(n):
     while i < n:
         i *= 2
     return i
+def hz_to_midi(val, rnd = True):
+    mid = 69+12*math.log(val/440,2)
+    if rnd:
+        mid = round(mid)
+    return mid
+
+def pitches_to_midi(data, rnd = True):
+    mfunc = np.vectorize(hz_to_midi)
+    return mfunc(data,rnd=rnd)
 
 def calculate_pitches(data, lowest_hz = 40, highest_hz = 900, fs = 220500, tHop = 0.01, tW = 0.025, threshold = 1):
     hopSamples = math.floor(fs*tHop)
@@ -39,7 +48,8 @@ def calculate_pitches(data, lowest_hz = 40, highest_hz = 900, fs = 220500, tHop 
         count = 0
         foundCandidate = False
         window = np.indices(ht_cepstrum.shape)
-        filt = np.logical_or(window >= minPeriodSamples, window <= maxPeriodSamples).astype(np.uint8)        ht_cepstrum = filt * ht_cepstrum
+        filt = np.logical_or(window >= minPeriodSamples, window <= maxPeriodSamples).astype(np.uint8)        
+        ht_cepstrum = filt * ht_cepstrum
         ht_cepstrum = ht_cepstrum.reshape((ht_cepstrum.shape[1]))
         while not foundCandidate and count < ht_cepstrum.shape[0]:
             idx = np.argmax(ht_cepstrum)
