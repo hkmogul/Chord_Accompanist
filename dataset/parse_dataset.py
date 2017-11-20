@@ -9,7 +9,6 @@ def get_note_data(filename, distThresh = 1):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
     notes = []
     midiSeq = []
-    print("handling file "+ filename)
     with open(filename,'r') as tsv:
         reader = csv.reader(tsv, delimiter='\t')
         lineList = list(reader)
@@ -27,14 +26,16 @@ def get_note_data(filename, distThresh = 1):
             note['onset'] = onset
             note['scale_deg'] = scale_deg
             note['duration'] = duration
+            note['midi_num'] = int(line[2])
             notes.append(note)
-            midiSeq.append(line[2])
+            midiSeq.append(int(line[2]) % 12)
     # by default, say the last note has the same duration as the threshold
     note = {}
     line = lineList[-1]
     note['onset'] = float(line[0])
     note['scale_deg'] = float(line[3]) +1
     note['duration'] = distThresh
+    midiSeq.append(int(line[2]) % 12)
     notes.append(note)
     return notes,midiSeq
 
@@ -51,7 +52,6 @@ def chord_to_number(numeric):
 
 def get_chord_data(filename):
     chords = []
-    print("handling file "+ filename)
     with open(filename, 'r') as tsv:
         lineList = list(csv.reader(tsv, delimiter='\t'))
         if len(lineList) == 0:
@@ -77,6 +77,7 @@ def get_chord_data(filename):
         chord['duration'] = 0
         chords.append(chord)
     return chords
+key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5,"[F#]":6,"[Gb]":6,"[G]":7,"[G#]": 8, "[Ab]":8, "[A]":9, "[A#]":10, "[Bb]":10, "[B]":11}
 
 def get_key(filename):
     with open(filename,'r') as f:
@@ -84,7 +85,11 @@ def get_key(filename):
             res = re.findall(r"\[[^\]]*\]",line)
             if len(res) == 0:
                 continue
-            key = res[0][1] # ignore the bracket, just want the key data
+            if res[0] in key2Num:
+                key = key2Num[res[0]]
+            else:
+                key = 'unvoiced'
+                print("{}???".format(res[0]))
             major = True
             if len(res) >1:
                 if "b" in res[1]:
@@ -183,6 +188,21 @@ def alignment_to_chroma(al):
 
     return chroma_seq,chord_seq
 
+def midi_seq_chroma(midiSeq):
+    ch = np.zeros((12))
+    for n in midiSeq:
+        ch[n] += 1
+    #return ch /ch.max() # normalize the array
+    norm = ch/ch.max()
+    # svc doesnt seem to like floats, so lets give it these as percentages
+    norm_pct = norm * 10000
+    return ch
+def chord_usage_array(chords):
+    ch = np.zeros((8))
+    for c in chords:
+        chord = c['chord']
+        ch[chord] += 1
+    return ch
 melody_folder = "melody"
 chord_folder = "chords"
 key_folder = "measures"
@@ -210,7 +230,8 @@ for kf in key_files:
     chroma_seq, chord_seq = alignment_to_chroma(data['align'])
     data['chroma'] = chroma_seq
     data['chord_seq'] = chord_seq
-    
+    data['midi_ch'] = midi_seq_chroma(midiSeq)
+    data['chord_stat'] = chord_usage_array(data['chords'])
     if data['key'][1]:
         path = dst_folder+'\\major\\'+title+'.pkl'
     else:
