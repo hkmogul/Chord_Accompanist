@@ -15,15 +15,15 @@ parser.add_argument("-folder", dest = "folder",help='location of pkls')
 parser.add_argument("-outfile", dest = "outfile",help="destination file")
 args = parser.parse_args()
 if args.outfile is None:
-    print("Usage: python train_hmm.py -folder fld -outfile out")
+    print("Usage: python train_key_identifier.py -folder fld -outfile out")
     sys.exit()
 if args.folder is None or not os.path.exists(args.folder):
     print("None or invalid folder specified. Will find all the pickles")
-    folder = "**\\**"
+    folder = os.path.join("**","**")
 else:
     folder = args.folder
 # get all the pickles!
-pkls = glob.glob(folder+"\\*.pkl")
+pkls = glob.glob(os.path.join(folder,"*.pkl"))
 lengths = []
 obs = np.empty((0)) # check for size 
 states = []
@@ -54,7 +54,7 @@ for p in pkls:
     for c in list(ch):
         allFloats = allFloats and isFloat(c)
     if allFloats:
-        ch_n = normscale *ch/ch.max()
+        ch_n = normscale *ch/max(0.001,ch.max())
         ch_n = ch_n.astype(np.uint32)
         # get most used note
         mun = np.argmax(ch_n)
