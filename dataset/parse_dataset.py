@@ -235,8 +235,8 @@ for kf in key_files:
     data['midi_ch'] = midi_seq_chroma(midiSeq)
     data['chord_stat'] = chord_usage_array(data['chords'])
     if data['key'][1]:
-        path = dst_folder+'\\major\\'+title+'.pkl'
+        path = os.path.join(dst_folder,'major',title+'.pkl')
     else:
-        path = dst_folder+'\\minor\\'+title+'.pkl'
+        path = os.path.join(dst_folder,'minor',title+'.pkl')
     with open(path,'wb') as p:
         pickle.dump(data, p)
