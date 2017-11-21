@@ -213,9 +213,11 @@ key_files = glob.glob("**/*.mel")
 
 for kf in key_files:
     title = splitext(basename(kf))[0]
-    corr_mel = melody_folder + '\\' +title +'.nlt'
-    corr_chord = chord_folder + '\\' + title + '.clt'
+    print("Title: {}".format(title))
+    corr_mel = os.path.join(melody_folder, title+'.nlt')
+    corr_chord = os.path.join(chord_folder,title + '.clt')
     if not corr_mel in melody_files or not corr_chord in chord_files:
+        print(":(")
         continue
     data = {}
     data['key'] = get_key(kf)
