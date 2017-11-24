@@ -200,7 +200,7 @@ def align_chord_notes(chords, notes):
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in]['used']=True
-            ch = chords[ch_in]['chord']
+            ch = chords[ch_in]['tonic_i']
 
         a['pair'] = [note_num, ch]
         alignment.append(a)
@@ -213,7 +213,7 @@ def align_chord_notes(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord['onset']
-            a['pair'] = [0,chord['chord']]
+            a['pair'] = [0,chord['tonic_i']]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list
@@ -268,6 +268,13 @@ def chord_usage_array(chords):
         ch[chord] += 1
     return ch
 
+def key_invariant_chord_usage_array(chords):
+    ch = np.zeros((len(chord_labels)))
+    for c in chords:
+        chord = c['tonic_i']
+        ch[chord] +=1
+    return ch
+
 melody_folder = "melody"
 chord_folder = "chords"
 key_folder = "measures"
@@ -298,7 +305,7 @@ for kf in key_files:
     data['chroma'] = chroma_seq
     data['chord_seq'] = chord_seq
     data['midi_ch'] = midi_seq_chroma(midiSeq)
-    data['chord_stat'] = chord_usage_array(data['chords'])
+    data['chord_stat'] = key_invariant_chord_usage_array(data['chords'])
     if data['key'][1]:
         path = os.path.join(dst_folder,'major',title+'.pkl')
     else:
