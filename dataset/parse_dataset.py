@@ -37,6 +37,7 @@ def get_note_data(filename, distThresh = 1):
     note['onset'] = float(line[0])
     note['scale_deg'] = float(line[3]) +1
     note['duration'] = distThresh
+    note['midi_num'] = int(line[2])
     midiSeq.append(int(line[2]) % 12)
     notes.append(note)
     return notes,midiSeq
@@ -194,7 +195,7 @@ def align_chord_notes(chords, notes):
         # find the corresponding chord for that time and duration
         a = {}
         note_onset = note['onset']
-        note_num = note['scale_deg']
+        note_num = note['midi_num']
         a['onset'] = note_onset
         ch =0
         ch_in = find_corresponding_chord(note_onset, chords)
@@ -227,7 +228,7 @@ def alignment_to_chroma(al):
     #chroma_seq = np.zeros((12,8)) # column per chord type, row per note
     first = True
     chord_seq = [] # chord labels
-    chroma_seq = np.zeros((12,1))
+    chroma_seq = np.zeros((1,12))
     for a in al:
         chord = int(a[1])
         note = int(a[0])
@@ -235,17 +236,18 @@ def alignment_to_chroma(al):
             # ignore null reads for this
             continue
         elif first:
-            chroma_seq = np.zeros((12,1))
-            chroma_seq[note - 1] += 1
+            chroma_seq = np.zeros((1,12))
+            chroma_seq[:,note%12] += 1
             chord_seq.append(chord)
             first = False
             prev_chord = chord
         elif chord == prev_chord:
-            chroma_seq[note-1,-1] += 1
+            chroma_seq[-1,note%12] += 1
         else: # new chord in sequence
-            chroma = np.zeros((12,1))
-            chroma[note-1] += 1
-            chroma_seq = np.concatenate((chroma_seq, chroma), axis = 1)
+            chroma = np.zeros((1,12))
+            chroma[:,note%12] += 1
+            chroma_seq = np.concatenate((chroma_seq, chroma), axis = 0)
+            #print(chroma)
             chord_seq.append(chord)
             prev_chord = chord
 
@@ -256,10 +258,6 @@ def midi_seq_chroma(midiSeq):
     ch = np.zeros((12))
     for n in midiSeq:
         ch[n] += 1
-    #return ch /ch.max() # normalize the array
-    norm = ch/ch.max()
-    # svc doesnt seem to like floats, so lets give it these as percentages
-    norm_pct = norm * 10000
     return ch
 def chord_usage_array(chords):
     ch = np.zeros((len(numeral2number)))
@@ -290,6 +288,7 @@ for kf in key_files:
     corr_chord = os.path.join(chord_folder,title + '.clt')
     if not corr_mel in melody_files or not corr_chord in chord_files:
         print(":(")
+
         continue
     data = {}
     data['key'] = get_key(kf)
