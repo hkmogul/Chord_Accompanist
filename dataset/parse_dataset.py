@@ -5,6 +5,8 @@ import re
 import os
 import numpy as np
 from os.path import basename, splitext
+import string
+
 def get_note_data(filename, distThresh = 1):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
     notes = []
@@ -39,18 +41,70 @@ def get_note_data(filename, distThresh = 1):
     notes.append(note)
     return notes,midiSeq
 
-numeral2number = {"vii":7,"vi":6,"v":5,"iv":4, "iii":3,"ii":2,"i":1, "none":0}
+numeral2number = {"VII":14,"VI":13,"IV":11,"V":12,"III":10,"II":9,"I":8,"vii":7,"vi":6,"iv":4,"v":5, "iii":3,"ii":2,"i":1, "none":0}
 number2numeral = {v:k for k,v in numeral2number.items()}
 def chord_to_number(numeric):
-    ''' converts the roman numeral representation of a number to the numerical value. ignores flats/minors 
-        only goes from 1 to 7 for chord conversion purposes
+    ''' converts the roman numeral representation of a number to the numerical value. ignores non-chord tone additions
     '''
     for num in numeral2number:
-        if num in numeric.lower():
-            return numeral2number[num]
-    return 0
+        if num in numeric:
+            return numeral2number[num], not num[0].isupper()
+    return 0, False
 
-def get_chord_data(filename):
+chord_labels = ['none', 'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b','C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+def chord_to_label(numeric, key):
+    '''
+    Converts a chord in roman numeral format to a non key-specific label of its tonic and major/minor
+    Also returns the index that would correspond to this label
+    '''
+    # get the chord number from the roman numeral
+    num,isMinor = chord_to_number(numeric)
+    if num == 0:
+        return chord_labels[0], 0
+    # key should already be an int where C = 0.  so all we need to do is offset the chord by  key+1
+    chord_index = key+1 + num
+    tonic = key %12
+    num2 = num%7
+    note = chord_num_to_note(num2, isMinor, tonic)
+    chord_index = note
+    if isMinor:
+        offset = 1 # 1 because C = 0 in melody, but 0 corresponds to no note
+    else:
+        offset = 13 # add 12 to get to the major labels
+    chord_index = note %12 + offset
+    # print("Minor invariant chord label is {}".format(num2))
+    # print("Sanity check: Received chord is {} ({}) parsed to {}".format(numeric, num,number2numeral[num]))
+    # print("Key is {} ({})".format(key, num2Key[key]))
+    # print("Tonic of key is {}, Chord note is {} which indexes to {}".format(tonic,chord_index, chord_labels[chord_index]))
+    # print("-----")
+    return chord_labels[chord_index], chord_index
+
+def chord_num_to_note(chord_num, isMinor, tonic):
+    # get 1-7 notation of chord, if it is minor, and its tonic to find the root note of this chord
+    # for minor, just using Aeolian mode
+    if isMinor:
+        switcher = {
+            1:tonic,
+            2:tonic+2,
+            3:tonic+3,
+            4:tonic+5,
+            5:tonic+7,
+            6:tonic+8,
+            7:tonic+10
+        }
+    else:
+        switcher = {
+            1:tonic,
+            2:tonic+2,
+            3:tonic+4,
+            4:tonic+5,
+            5:tonic+7,
+            6:tonic+9,
+            7:tonic+11
+        }
+
+    return switcher.get(chord_num, 0)
+def get_chord_data(filename,key):
     chords = []
     with open(filename, 'r') as tsv:
         lineList = list(csv.reader(tsv, delimiter='\t'))
@@ -63,22 +117,32 @@ def get_chord_data(filename):
                 continue
 
             chord['onset'] = float(line[0])
-            chord['chord'] = chord_to_number(line[2])
-            chord['chord_str'] = number2numeral[chord['chord']]
+            chord_num, isMinor = chord_to_number(line[2])
+            chord['chord'] = chord_num
+            chord['chord_str'] = number2numeral[chord_num]
             chord['duration'] =  float(lineList[i+1][0])-chord['onset']
+            ch_m, ch_m_i = chord_to_label(line[2], key)
+            chord['tonic'] = ch_m
+            chord['tonic_i'] = ch_m_i
             chords.append(chord)
 
         # last chord
         line = lineList[-1]
         chord = {}
         chord['onset'] = float(line[0])
-        chord['chord'] = chord_to_number(line[2])
+        chord_num, isMinor = chord_to_number(line[2])
+        chord['chord'] = chord_num
+
         chord['chord_str'] = number2numeral[chord['chord']]
+        ch_m, ch_m_i = chord_to_label(line[2], key)
+        chord['tonic'] = ch_m
+        chord['tonic_i'] = ch_m_i
         chord['duration'] = 0
         chords.append(chord)
     return chords
-key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5,"[F#]":6,"[Gb]":6,"[G]":7,"[G#]": 8, "[Ab]":8, "[A]":9, "[A#]":10, "[Bb]":10, "[B]":11}
 
+key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5,"[F#]":6,"[Gb]":6,"[G]":7,"[G#]": 8, "[Ab]":8, "[A]":9, "[A#]":10, "[Bb]":10, "[B]":11}
+num2Key = {v:k for k,v in key2Num.items()}
 def get_key(filename):
     with open(filename,'r') as f:
         for line in f.readlines():
@@ -198,11 +262,12 @@ def midi_seq_chroma(midiSeq):
     norm_pct = norm * 10000
     return ch
 def chord_usage_array(chords):
-    ch = np.zeros((8))
+    ch = np.zeros((len(numeral2number)))
     for c in chords:
         chord = c['chord']
         ch[chord] += 1
     return ch
+
 melody_folder = "melody"
 chord_folder = "chords"
 key_folder = "measures"
@@ -227,7 +292,7 @@ for kf in key_files:
     notes, midiSeq = get_note_data(corr_mel)
     data['notes'] = notes
     data['midi_seq'] = midiSeq
-    data['chords'] = get_chord_data(corr_chord)
+    data['chords'] = get_chord_data(corr_chord, data['key'][0])
     data['align'] = align_chord_notes(data['chords'], data['notes'])
     chroma_seq, chord_seq = alignment_to_chroma(data['align'])
     data['chroma'] = chroma_seq
