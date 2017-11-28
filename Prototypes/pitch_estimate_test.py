@@ -1,10 +1,13 @@
 import numpy as np
 import librosa
 import librosa.core
-from pitch_estimation import *
 import matplotlib.pyplot as plt
 import matplotlib.style as ms
 import time
+import sys
+sys.path.append('..\\')
+from pitch_estimation import *
+
 ms.use('seaborn-muted')
 
 y, sr = librosa.load('violin.wav')
