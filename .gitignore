@@ -3,3 +3,4 @@
 *.nlt
 *.mel
 *.pkl
+.DS_Store
