@@ -11,7 +11,7 @@ from seqlearn.evaluation import bio_f_score
 import matplotlib.pyplot as plt
 
 # self made libs
-import dataset_utils
+from dataset_utils import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-folder", dest = "folder",help='location of pkls')
@@ -30,25 +30,26 @@ obs = np.empty((0)) # check for size
 states = []
 lim = int(len(pkls)*7/8)
 #chroma = np.zeros((1,8))
-def my_imshow(data, **kwargs):
-    """Wrapper for imshow that sets common defaults."""
-    plt.imshow(data, interpolation='nearest', aspect='auto', 
-               origin='bottom', cmap='gray_r', **kwargs)
 
-vocab = list(range(0,len(dataset_utils.chord_labels)))
+vocab = list(range(0,len(chord_labels)))
 count = 0
 for p in pkls:
+    # chroma_seq, chord_seq = alignment_to_chroma(data['align']) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
+    # # a fake beat synchronous chroma, if you will
+    # data['chroma'] = chroma_seq
+    # data['chord_seq'] = chord_seq
+    # so we need the chroma and chord_seq objects from the output.
 
     data = pickle.load(open(p, "rb"))
+    chroma = data['chroma']
+    chord_sequence = data['chord_seq']
     t = data['align']
-    if len(t) == 0:
+    if len(chord_sequence) == 0:
         continue
 
     w,y = zip(*t)
     v,identities = np.unique(w,return_inverse=True)
-    #print(identities)
     X = (identities.reshape(-1, 1) == np.arange(len(vocab))).astype(int)
-    #print(X)
     if count > lim:
         print("Test file is {}".format(p))
         break
@@ -63,17 +64,3 @@ for p in pkls:
 #     print("Chord is {}. Chroma is {}".format(chord_seq[i], chroma[:,i]))
 
 
-print("Obs shape: {}, y shape {}, lengths {}, sum of lengths {}".format(obs.shape, len(states), len(lengths), sum(lengths)))
-#create an HMM!
-print("Attempting fit with HMM")
-clf2 = MultinomialHMM(alpha = 0.5)
-clf2.fit(obs,states,lengths)
-yp = clf2.predict(X)
-print(yp)
-print("---\nGround truth:")
-print(y)
-print("Training StructuredPerceptron")
-clf = StructuredPerceptron(max_iter=50, lr_exponent=.001)
-clf.fit(obs,states, lengths)
-yp = clf.predict(X)
-print(yp)

@@ -24,7 +24,6 @@ for kf in key_files:
     corr_chord = os.path.join(chord_folder,title + '.clt')
     if not corr_mel in melody_files or not corr_chord in chord_files:
         print(":(")
-
         continue
     data = {}
     data['key'] = get_key(kf)
@@ -32,15 +31,17 @@ for kf in key_files:
     if data['key'][0] is 'unvoiced':
         continue
     notes, midiSeq = get_note_data(corr_mel)
-    data['notes'] = notes
-    data['midi_seq'] = midiSeq
-    data['chords'] = get_chord_data(corr_chord, data['key'][0])
-    data['align'] = align_chord_notes(data['chords'], data['notes'])
-    chroma_seq, chord_seq = alignment_to_chroma(data['align'])
+    chords =get_chord_data(corr_chord, data['key'][0])
+    data['notes'] = notes # midi number, onset/offset time, and scale degree
+    data['midi_seq'] = midiSeq # chroma
+    data['chords'] = chords # label of tonic and major minor of chords
+    data['align'] = align_chord_notes(chords, notes) # align notes with indices of chord labels
+    chroma_seq, chord_seq = alignment_to_chroma(data['align']) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
+    # a fake beat synchronous chroma, if you will
     data['chroma'] = chroma_seq
     data['chord_seq'] = chord_seq
-    data['midi_ch'] = midi_seq_chroma(midiSeq)
-    data['chord_stat'] = key_invariant_chord_usage_array(data['chords'])
+    data['midi_ch'] = midi_seq_chroma(midiSeq) # 12 unit array of note usage in melody
+    data['chord_stat'] = key_invariant_chord_usage_array(chords)
     if data['key'][1]:
         path = os.path.join(dst_folder,'major',title+'.pkl')
     else:

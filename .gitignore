@@ -3,4 +3,5 @@
 *.nlt
 *.mel
 *.pkl
+*.pyc
 .DS_Store
