@@ -35,8 +35,8 @@ for kf in key_files:
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma
     data['chords'] = chords # label of tonic and major minor of chords
-    data['align'] = align_chord_notes(chords, notes) # align notes with indices of chord labels
-    chroma_seq, chord_seq = alignment_to_chroma(data['align']) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
+    alignment = align_chord_notes(chords, notes) # align notes with indices of chord labels
+    chroma_seq, chord_seq = alignment_to_chroma(alignment,data['key'][0]) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
     # a fake beat synchronous chroma, if you will
     data['chroma'] = chroma_seq
     data['chord_seq'] = chord_seq

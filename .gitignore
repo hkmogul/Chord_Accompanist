@@ -5,3 +5,5 @@
 *.pkl
 *.pyc
 .DS_Store
+
+/pymir/

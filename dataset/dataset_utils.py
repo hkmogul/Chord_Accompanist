@@ -18,7 +18,7 @@ def get_move_list(labels):
 
 def estimate_chord_transitions(chord_mvs):
     ''' calculate chord movement transitions and priors from transitions '''
-    nChordLabels = len(chord_labels)
+    nChordLabels = len(chord_roman_labels)
     transitions = np.zeros((nChordLabels, nChordLabels))
     counter = Counter(chord_mvs)
     for i in range(nChordLabels):
@@ -31,7 +31,7 @@ def estimate_chord_transitions(chord_mvs):
     return transitions,priors
 
 def train_gaussian_models(features, labels, chord_mvs):
-    nChordLabels = len(chord_labels)
+    nChordLabels = len(chord_roman_labels)
     # a gmm will return the log likelihood of a specific label
     generic = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
     print("Features.shape is {}".format(features.shape))
@@ -56,7 +56,7 @@ def estimate_chords(chroma, models, transitions, priors):
 def viterbi(posterior_prob, transition_prob, prior_prob):
     print(posterior_prob.shape)
     nFrames = posterior_prob.shape[0]
-    nStates = len(chord_labels)
+    nStates = len(chord_roman_labels)
     traceback = np.zeros((nFrames, nStates), dtype=int)
     # best probability of each state
     best_prob = prior_prob * posterior_prob[0]
@@ -112,12 +112,24 @@ number2numeral = {v:k for k,v in numeral2number.items()}
 def chord_to_number(numeric):
     ''' converts the roman numeral representation of a number to the numerical value. ignores non-chord tone additions
     '''
+    # get substring of all chars up to the first non char
+    pos = 0
+    while pos < len(numeric) and numeric[pos].isalpha():
+        pos+=1
+    #print(numeric[:pos])
+    
     for num in numeral2number:
-        if num in numeric:
+        if num == numeric[:pos]:
             return numeral2number[num], not num[0].isupper()
     return 0, False
 
 chord_labels = ['none', 'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b','C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+chord_roman_labels = ['none', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
+def chord_num_to_index(num, isMinor):
+    offset = 1
+    if not isMinor:
+        offset += 7
+    return num+offset
 def chord_to_label(numeric, key):
     '''
     Converts a chord in roman numeral format to a non key-specific label of its tonic and major/minor
@@ -125,6 +137,7 @@ def chord_to_label(numeric, key):
     '''
     # get the chord number from the roman numeral
     num,isMinor = chord_to_number(numeric)
+    print("Numeral: {}, num:{}, isMinor:{}".format(numeric, num, isMinor))
     if num == 0:
         return chord_labels[0], 0
     # key should already be an int where C = 0.  so all we need to do is offset the chord by  key+1
@@ -208,6 +221,7 @@ def get_chord_data(filename,key):
     return chords
 
 key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5,"[F#]":6,"[Gb]":6,"[G]":7,"[G#]": 8, "[Ab]":8, "[A]":9, "[A#]":10, "[Bb]":10, "[B]":11}
+keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 def get_key(filename):
     with open(filename,'r') as f:
@@ -266,7 +280,7 @@ def align_chord_notes(chords, notes):
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in]['used']=True
-            ch = chords[ch_in]['tonic_i']
+            ch = chords[ch_in]['chord']
 
         a['pair'] = [note_num, ch]
         alignment.append(a)
@@ -279,7 +293,7 @@ def align_chord_notes(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord['onset']
-            a['pair'] = [0,chord['tonic_i']]
+            a['pair'] = [0,chord['chord']]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list
@@ -288,7 +302,7 @@ def align_chord_notes(chords, notes):
         al.append(a['pair'])
     return al
 
-def alignment_to_chroma(al):
+def alignment_to_chroma(al,key=0):
     ''' uses alignment to generate fake chroma for each chord, adding to the corresponding '''
     #chroma_seq = np.zeros((12,8)) # column per chord type, row per note
     first = True
@@ -316,8 +330,8 @@ def alignment_to_chroma(al):
             chord_seq.append(chord)
             prev_chord = chord
 
-
-    return chroma_seq,chord_seq
+    rolled_chroma = np.roll(chroma_seq, key, axis=1)
+    return rolled_chroma,chord_seq
 
 def midi_seq_chroma(midiSeq):
     ch = np.zeros((12))

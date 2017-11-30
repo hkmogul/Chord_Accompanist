@@ -55,16 +55,21 @@ for p in pkls:
     if count == test_index:
         test_chroma = chroma
         test_label = chord_sequence
+        test_transitions = get_move_list(chord_sequence)
         print("Test file is {}".format(p))
     count += 1
     
 
 for i in range(0,len(test_label)):
-    print("Label: {}\nChroma:\n{}\n-----".format(test_label[i], test_chroma[i,:]))
+    print("Label: {}\nChroma:\n{}\n-----".format(chord_roman_labels[test_label[i]], test_chroma[i,:]))
+
+for t in test_transitions:
+    print("{} -> {}".format(chord_roman_labels[t[0]],chord_roman_labels[t[1]]))
+print(test_transitions)
 
 # train a hybrid GMM/HMM
 models, transitions, priors = train_gaussian_models(all_chroma,chord_seq, chord_mvs)
-
-predict = estimate_chords(chroma, models, transitions,priors)
+print(transitions)
+print(transitions[8,12])
+print(transitions.shape)
 print("Actual labels: \n{}".format(test_label))
-print("------\nPredicted labels:\n{}".format(predict))
