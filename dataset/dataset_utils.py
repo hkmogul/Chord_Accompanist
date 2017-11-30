@@ -54,20 +54,22 @@ def estimate_chords(chroma, models, transitions, priors):
     return viterbi(np.exp(scores.transpose()), transitions, priors)
 
 def viterbi(posterior_prob, transition_prob, prior_prob):
-    nFrames, nStates = posterior_prob.shape
+    print(posterior_prob.shape)
+    nFrames = posterior_prob.shape[0]
+    nStates = len(chord_labels)
     traceback = np.zeros((nFrames, nStates), dtype=int)
     # best probability of each state
-    best_prob = priors * posterior_prob[0]
-    best_prob /= np.sum(best_prob)
+    best_prob = prior_prob * posterior_prob[0]
+    best_prob /= max(0.0001,np.sum(best_prob))
     for f in range(1,nFrames):
-        poss_scores = (transition_prob * np.outer(best_prob, posterior_prob[frame]))
-        traceback[frame] = np.argmax(poss_scores, axis=0)
+        poss_scores = (transition_prob * np.outer(best_prob, posterior_prob[f]))
+        traceback[f] = np.argmax(poss_scores, axis=0)
         best_prob = np.max(poss_scores, axis=0)
-        best_prob /= np.sum(best_prob)
+        best_prob /= max(0.001,np.sum(best_prob))
     path = np.zeros(nFrames, dtype=int)
     path[-1] = np.argmax(best_prob)
     for i in range(nFrames-1, 0,-1):
-        path[i-1] = traceback[frame, path[frame]]
+        path[i-1] = traceback[i, path[i]]
     return path
 
 def get_note_data(filename, distThresh = 1):
