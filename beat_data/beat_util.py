@@ -95,9 +95,12 @@ def create_measure_signature(onset_measure):
     for i in onset_norm:
         impulses[i] = 1
     return impulses
-def measure_signature_to_onset_times(signature, duration_ms = 1000):
-    """ convert a time independent onset signature to a vector of onset times"""
+
+def measure_signature_to_onset_times(signature, duration_ms = 1000, offset_ms =0):
+    """ convert a time independent onset signature to a vector of onset times, in ms"""
     # get locations of nonzero elements
     locs = np.where(signature)[0]
-    
-    pass
+    # then convert these locations to fractions
+    onset_times = locs/signature_len
+    stretch_onset = stretch_measure(onset_times, duration_ms)
+    return stretch_onset + offset_ms
