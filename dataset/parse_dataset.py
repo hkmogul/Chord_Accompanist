@@ -31,7 +31,7 @@ for kf in key_files:
     if data['key'][0] is 'unvoiced':
         continue
     notes, midiSeq = get_note_data(corr_mel)
-    chords =get_chord_data(corr_chord, data['key'][0])
+    chords =get_chord_data(corr_chord, data['key'][0], not data['key'][1])
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma
     data['chords'] = chords # label of tonic and major minor of chords

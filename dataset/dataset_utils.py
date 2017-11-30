@@ -8,6 +8,16 @@ from os.path import basename, splitext
 import string
 import sklearn.mixture
 from collections import Counter
+
+numeral2number = {"VII":14,"VI":13,"IV":11,"V":12,"III":10,"II":9,"I":8,"vii":7,"vi":6,"iv":4,"v":5, "iii":3,"ii":2,"i":1, "none":0}
+number2numeral = {v:k for k,v in numeral2number.items()}
+chord_labels = ['none', 'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b','C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+chord_roman_labels = ['none', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
+key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5,"[F#]":6,"[Gb]":6,"[G]":7,"[G#]": 8, "[Ab]":8, "[A]":9, "[A#]":10, "[Bb]":10, "[B]":11}
+keyList = list(set([v for k,v in key2Num.items()]))
+num2Key = {v:k for k,v in key2Num.items()}
+nChordLabels = len(chord_labels)
+
 def get_move_list(labels):
     '''
     Generate list of tuples of movements
@@ -18,7 +28,6 @@ def get_move_list(labels):
 
 def estimate_chord_transitions(chord_mvs):
     ''' calculate chord movement transitions and priors from transitions '''
-    nChordLabels = len(chord_roman_labels)
     transitions = np.zeros((nChordLabels, nChordLabels))
     counter = Counter(chord_mvs)
     for i in range(nChordLabels):
@@ -31,7 +40,6 @@ def estimate_chord_transitions(chord_mvs):
     return transitions,priors
 
 def train_gaussian_models(features, labels, chord_mvs):
-    nChordLabels = len(chord_roman_labels)
     # a gmm will return the log likelihood of a specific label
     generic = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
     print("Features.shape is {}".format(features.shape))
@@ -54,7 +62,6 @@ def estimate_chords(chroma, models, transitions, priors):
     return viterbi(np.exp(scores.transpose()), transitions, priors)
 
 def viterbi(posterior_prob, transition_prob, prior_prob):
-    print(posterior_prob.shape)
     nFrames = posterior_prob.shape[0]
     nStates = len(chord_roman_labels)
     traceback = np.zeros((nFrames, nStates), dtype=int)
@@ -72,7 +79,7 @@ def viterbi(posterior_prob, transition_prob, prior_prob):
         path[i-1] = traceback[i, path[i]]
     return path
 
-def get_note_data(filename, distThresh = 1):
+def get_note_data(filename, distThresh = .99):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
     notes = []
     midiSeq = []
@@ -84,10 +91,10 @@ def get_note_data(filename, distThresh = 1):
         for i in range(0, len(lineList)-1):
             note = {}
             line = lineList[i]
-            onset = float(line[0])
+            onset = float(line[1])
             scale_deg = int(line[3]) +1 # add 1 so we can use 0 as no-pitch
-            next_onset = float(lineList[i+1][0])
-            duration = next_onset - onset
+            next_onset = float(lineList[i+1][1])
+            duration = next_onset - onset -.01
             # default to a threshold if greater, to handle pauses
             duration = min(duration,distThresh)
             note['onset'] = onset
@@ -99,7 +106,7 @@ def get_note_data(filename, distThresh = 1):
     # by default, say the last note has the same duration as the threshold
     note = {}
     line = lineList[-1]
-    note['onset'] = float(line[0])
+    note['onset'] = float(line[1])
     note['scale_deg'] = float(line[3]) +1
     note['duration'] = distThresh
     note['midi_num'] = int(line[2])
@@ -107,14 +114,13 @@ def get_note_data(filename, distThresh = 1):
     notes.append(note)
     return notes,midiSeq
 
-numeral2number = {"VII":14,"VI":13,"IV":11,"V":12,"III":10,"II":9,"I":8,"vii":7,"vi":6,"iv":4,"v":5, "iii":3,"ii":2,"i":1, "none":0}
-number2numeral = {v:k for k,v in numeral2number.items()}
+
 def chord_to_number(numeric):
-    ''' converts the roman numeral representation of a number to the numerical value. ignores non-chord tone additions
+    ''' converts the roman numeral representation of a number to the numerical value. ignores non-chord tone additions/complexities
     '''
     # get substring of all chars up to the first non char
     pos = 0
-    while pos < len(numeric) and numeric[pos].isalpha():
+    while pos < len(numeric) and numeric[pos].isalpha() and numeric[pos] != 'd':
         pos+=1
     #print(numeric[:pos])
     
@@ -123,21 +129,20 @@ def chord_to_number(numeric):
             return numeral2number[num], not num[0].isupper()
     return 0, False
 
-chord_labels = ['none', 'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b','C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-chord_roman_labels = ['none', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
+
 def chord_num_to_index(num, isMinor):
     offset = 1
     if not isMinor:
         offset += 7
     return num+offset
-def chord_to_label(numeric, key):
+def chord_to_label(numeric, key, isMinor):
     '''
     Converts a chord in roman numeral format to a non key-specific label of its tonic and major/minor
     Also returns the index that would correspond to this label
     '''
     # get the chord number from the roman numeral
-    num,isMinor = chord_to_number(numeric)
-    print("Numeral: {}, num:{}, isMinor:{}".format(numeric, num, isMinor))
+    num,isMinor2 = chord_to_number(numeric)
+    #print("Numeral: {}, num:{}, isMinor:{}".format(numeric, num, isMinor))
     if num == 0:
         return chord_labels[0], 0
     # key should already be an int where C = 0.  so all we need to do is offset the chord by  key+1
@@ -183,7 +188,7 @@ def chord_num_to_note(chord_num, isMinor, tonic):
         }
 
     return switcher.get(chord_num, 0)
-def get_chord_data(filename,key):
+def get_chord_data(filename,key, isMinor):
     chords = []
     with open(filename, 'r') as tsv:
         lineList = list(csv.reader(tsv, delimiter='\t'))
@@ -195,12 +200,12 @@ def get_chord_data(filename,key):
             if len(line) < 3:
                 continue
 
-            chord['onset'] = float(line[0])
+            chord['onset'] = float(line[1])
             chord_num, isMinor = chord_to_number(line[2])
             chord['chord'] = chord_num
             chord['chord_str'] = number2numeral[chord_num]
-            chord['duration'] =  float(lineList[i+1][0])-chord['onset']
-            ch_m, ch_m_i = chord_to_label(line[2], key)
+            chord['duration'] =  float(lineList[i+1][1])-chord['onset']
+            ch_m, ch_m_i = chord_to_label(line[2], key, isMinor)
             chord['tonic'] = ch_m
             chord['tonic_i'] = ch_m_i
             chords.append(chord)
@@ -208,21 +213,19 @@ def get_chord_data(filename,key):
         # last chord
         line = lineList[-1]
         chord = {}
-        chord['onset'] = float(line[0])
+        chord['onset'] = float(line[1])
         chord_num, isMinor = chord_to_number(line[2])
         chord['chord'] = chord_num
 
         chord['chord_str'] = number2numeral[chord['chord']]
-        ch_m, ch_m_i = chord_to_label(line[2], key)
+        ch_m, ch_m_i = chord_to_label(line[2], key, isMinor)
         chord['tonic'] = ch_m
         chord['tonic_i'] = ch_m_i
         chord['duration'] = 0
         chords.append(chord)
     return chords
 
-key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5,"[F#]":6,"[Gb]":6,"[G]":7,"[G#]": 8, "[Ab]":8, "[A]":9, "[A#]":10, "[Bb]":10, "[B]":11}
-keyList = list(set([v for k,v in key2Num.items()]))
-num2Key = {v:k for k,v in key2Num.items()}
+
 def get_key(filename):
     with open(filename,'r') as f:
         for line in f.readlines():
@@ -235,11 +238,13 @@ def get_key(filename):
                 key = 'unvoiced'
                 print("{}???".format(res[0]))
             major = True
+            minor = False
             if len(res) >1:
                 if "b" in res[1]:
                     # treat anything that has added flats as minor
                     major = False
-            return key, major
+                    minor = True
+            return key, minor
     return 'unvoiced',False
 def find_corresponding_chord(onset, chords):
     '''
@@ -280,7 +285,7 @@ def align_chord_notes(chords, notes):
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in]['used']=True
-            ch = chords[ch_in]['chord']
+            ch = chords[ch_in]['tonic_i']
 
         a['pair'] = [note_num, ch]
         alignment.append(a)
@@ -293,13 +298,13 @@ def align_chord_notes(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord['onset']
-            a['pair'] = [0,chord['chord']]
+            a['pair'] = [0,chord['tonic_i']]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list
     al = []
     for a in alignment:
-        al.append(a['pair'])
+        al.append((a['onset'],a['pair']))
     return al
 
 def alignment_to_chroma(al,key=0):
@@ -308,7 +313,10 @@ def alignment_to_chroma(al,key=0):
     first = True
     chord_seq = [] # chord labels
     chroma_seq = np.zeros((1,12))
-    for a in al:
+    prev_measure = 0
+    for align in al:
+        a = align[1]
+        measure_num = align[0]
         chord = int(a[1])
         note = int(a[0])
         if note == 0:
@@ -320,7 +328,8 @@ def alignment_to_chroma(al,key=0):
             chord_seq.append(chord)
             first = False
             prev_chord = chord
-        elif chord == prev_chord:
+            prev_measure = int(measure_num)
+        elif chord == prev_chord and int(measure_num) == prev_measure:
             chroma_seq[-1,note%12] += 1
         else: # new chord in sequence
             chroma = np.zeros((1,12))
@@ -329,9 +338,10 @@ def alignment_to_chroma(al,key=0):
             #print(chroma)
             chord_seq.append(chord)
             prev_chord = chord
+            prev_measure = int(measure_num)
 
-    rolled_chroma = np.roll(chroma_seq, key, axis=1)
-    return rolled_chroma,chord_seq
+    chroma_seq = np.roll(chroma_seq, key, axis=1)
+    return chroma_seq,chord_seq
 
 def midi_seq_chroma(midiSeq):
     ch = np.zeros((12))
@@ -351,3 +361,17 @@ def key_invariant_chord_usage_array(chords):
         chord = c['tonic_i']
         ch[chord] +=1
     return ch
+
+majorFilt = np.array([1,0,1,0,1,1,0,1,0,1,0,1])
+
+# avoid confusion with melodic, natural, and harmonic minor by allowing all sevenths
+minorFilt = np.array([1,0,1,1,0,1,0,1,1,0,1,1])
+def remove_off_key_tones(chroma, key, isMinor):
+    if (isMinor):
+        filt = np.roll(minorFilt, key)
+    else:
+        filt = np.roll(majorFilt, key)
+    filtered_chroma = np.copy(chroma)
+    for i in range(chroma.shape[0]):
+        filtered_chroma[i,:] = chroma[i,:] * filt
+    return filtered_chroma
