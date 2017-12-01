@@ -17,7 +17,7 @@ key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5
 keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 nChordLabels = len(chord_labels)
-
+onset_expander = 4
 
 
 def get_note_data(filename, distThresh = .99):
@@ -32,9 +32,9 @@ def get_note_data(filename, distThresh = .99):
         for i in range(0, len(lineList)-1):
             note = {}
             line = lineList[i]
-            onset = float(line[1])*2
+            onset = float(line[1])*onset_expander
             scale_deg = int(line[3]) +1 # add 1 so we can use 0 as no-pitch
-            next_onset = float(lineList[i+1][1]) *2
+            next_onset = float(lineList[i+1][1]) *onset_expander
             duration = next_onset - onset -.01
             # default to a threshold if greater, to handle pauses
             duration = min(duration,distThresh)
@@ -47,7 +47,7 @@ def get_note_data(filename, distThresh = .99):
     # by default, say the last note has the same duration as the threshold
     note = {}
     line = lineList[-1]
-    note['onset'] = float(line[1])*2
+    note['onset'] = float(line[1])*onset_expander
     note['scale_deg'] = float(line[3]) +1
     note['duration'] = distThresh
     note['midi_num'] = int(line[2])
@@ -116,11 +116,6 @@ def chord_to_label(numeric, key, isMinor):
     else:
         offset = 13 # add 12 to get to the major labels
     chord_index = note %12 + offset
-    # print("Minor invariant chord label is {}".format(num2))
-    # print("Sanity check: Received chord is {} ({}) parsed to {}".format(numeric, num,number2numeral[num]))
-    # print("Key is {} ({})".format(key, num2Key[key]))
-    # print("Tonic of key is {}, Chord note is {} which indexes to {}".format(tonic,chord_index, chord_labels[chord_index]))
-    # print("-----")
     return chord_labels[chord_index], chord_index
 
 def chord_num_to_note(chord_num, isMinor, tonic):
@@ -160,11 +155,11 @@ def get_chord_data(filename,key, isMinor):
             if len(line) < 3:
                 continue
 
-            chord['onset'] = float(line[1]) *2
+            chord['onset'] = float(line[1]) *onset_expander
             chord_num, isMinor = chord_to_number(line[2])
             chord['chord'] = chord_num
             chord['chord_str'] = number2numeral[chord_num]
-            chord['duration'] =  float(lineList[i+1][1])*2-chord['onset']
+            chord['duration'] =  float(lineList[i+1][1])*onset_expander-chord['onset']-.01
             ch_m, ch_m_i = chord_to_label(line[2], key, isMinor)
             chord['tonic'] = ch_m
             chord['tonic_i'] = ch_m_i
@@ -173,7 +168,7 @@ def get_chord_data(filename,key, isMinor):
         # last chord
         line = lineList[-1]
         chord = {}
-        chord['onset'] = float(line[1])*2
+        chord['onset'] = float(line[1])*onset_expander
         chord_num, isMinor = chord_to_number(line[2])
         chord['chord'] = chord_num
 
@@ -235,17 +230,21 @@ def align_chord_notes(chords, notes):
     # ultimately, list of dicts with onset time, note, and chord
     # make an initial pass to pair each note to a corresponding chord
     # then pass through the chords to insert/append/prepend null reads for notes
+    ch_prev = 0
     for note in notes:
         # find the corresponding chord for that time and duration
         a = {}
         note_onset = note['onset']
         note_num = note['midi_num']
         a['onset'] = note_onset
-        ch =0
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in]['used']=True
             ch = chords[ch_in]['tonic_i']
+            ch_prev = ch
+        else:
+            ch = ch_prev
+            
 
         a['pair'] = [note_num, ch]
         alignment.append(a)
