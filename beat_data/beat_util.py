@@ -5,7 +5,7 @@ import pretty_midi
 
 signature_len = 1000
 
-def segment_onsets(data=None, sr=None, filename=None, group_measures=False, group_num=4):
+def segment_onsets(data=None, sr=None, filename=None, group_measures=False, group_num=2):
     """ Segment an audio file or preloaded data's onsets into each beat
 
     Args:
@@ -17,7 +17,7 @@ def segment_onsets(data=None, sr=None, filename=None, group_measures=False, grou
     """
     if data is None and sr is None and filename is None:
         raise ValueError("Must specify at least one required argument of data or filename")
-        return
+        
     elif data is None and sr is None:
         data,sr = librosa.load(filename, mono=True)
     elif data is None:
@@ -31,21 +31,26 @@ def segment_onsets(data=None, sr=None, filename=None, group_measures=False, grou
     t2,beats = librosa.beat.beat_track(onset_envelope=onset_strength, sr = sr, bpm=tempo, trim=True)
     if beats.shape[0] == 0:
         return []
-    onsets = librosa.onset.onset_detect(onset_envelope=onset_strength, backtrack=True)
+    onsets = librosa.onset.onset_detect(onset_envelope=onset_strength)
     beat_data = []
     beat_data.append(onsets[0:beats[0]])
     for i in range(0,beats.shape[0]-1):
         n = beats[i]
         n0 = beats[i+1]
+        ons = onsets[n:n0]
+        if len(ons) == 0:
+            continue
         beat_data.append(onsets[n:n0])
-    beat_data.append(onsets[beats[-1]:])
+    last_ons = onsets[beats[-1]:]
+    if len(last_ons) > 0:
+        beat_data.append(last_ons)
     if group_measures:
         new_group = group_onsets(beat_data, group_num)
         return new_group
     else:
         return beat_data
 
-def group_onsets(onsets, group_num=4):
+def group_onsets(onsets, group_num=2):
     """
     concatenate onsets in contiguous groups
     """
@@ -88,12 +93,13 @@ def create_measure_signature(onset_measure):
     '''
     Returns a signature_len point vector of impulses that represent the "signature" of the beat section
     '''
-    onset_norm = stretch_measure(onset_measure, length_data=1000)
+    onset_norm = stretch_measure(onset_measure, length_data=signature_len-1)
     # quick rounding
     onset_norm = onset_norm.astype(np.uint32)
     impulses = np.zeros((signature_len))
     for i in onset_norm:
         impulses[i] = 1
+        
     return impulses
 
 def measure_signature_to_onset_times(signature, duration_ms = 1000, offset_ms =0):

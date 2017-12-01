@@ -4,3 +4,29 @@ import pickle
 import librosa
 import numpy as np
 from beat_util import *
+import sys
+
+parser = argparse.ArgumentParser(description='Generate beat signatures for onsets.')
+parser.add_argument('-infile', dest='infile')
+parser.add_argument('-outfile', dest='outfile')
+args = parser.parse_args()
+if args.infile is None:
+    print("Enter file pls")
+    sys.exit()
+
+segments = segment_onsets(filename=args.infile)
+signatures = []
+c = 0
+for i in range(len(segments)):
+    c+= len(segments[i])
+    signatures.append(create_measure_signature(segments[i]))
+
+
+if args.outfile is None:
+    print("attempting to stretch the signature to a set amount")
+    for sig in signatures:
+        print(measure_signature_to_onset_times(sig, duration_ms=500))
+    print("Enter outfile too pls")
+    sys.exit()
+else:
+    pickle.dump(signatures, open(args.outfile, "wb"))
