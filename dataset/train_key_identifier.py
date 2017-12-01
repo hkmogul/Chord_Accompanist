@@ -33,6 +33,7 @@ def my_imshow(data, **kwargs):
                origin='bottom', cmap='gray_r', **kwargs)
 # dict for mapping key strings to their chroma number 0 = C
 features = []
+features2 = []
 labels = []
 def isFloat(s):
     try:
@@ -47,13 +48,14 @@ for p in pkls:
     if key is 'unvoiced':
         continue
     ch = data['midi_ch']
+    # 12 unit array of note usage in melody
     chordstat = data['chord_stat']
     allFloats = True
     normscale = 100 #dilating the data seems to be very helpful
     for c in list(ch):
         allFloats = allFloats and isFloat(c)
     if allFloats:
-        ch_n = normscale *ch/max(0.001,ch.max())
+        ch_n = normscale *ch/max(0.001,ch.sum())
         ch_n = ch_n.astype(np.uint32)
         # get most used note
         mun = np.argmax(ch_n)
@@ -62,12 +64,15 @@ for p in pkls:
         chord_n = chord_n.astype(np.uint32)
         featvector = []
         featvector = list(ch_n) + list(chord_n)
+        
         features.append(featvector)
+        features2.append(list(ch_n))
         labels.append(key)
     else:
         print("{} has non float chroma???".format(p))
 
 feat = np.array(features) 
+feat2 = np.array(features2)
 y = np.array(labels)
 
 
@@ -75,18 +80,37 @@ y = np.array(labels)
 if args.outfile is not None:
     # use all data to generate a pickle of the classifier
     clf = svm.SVC(kernel='linear', probability=True, random_state=int(time.time()))
-    clf.fit(feat, y)
+    clf.fit(feat2, y)
     pickle.dump(clf,open(args.outfile, "wb"))
     print("Fit a linear SVC to all data. Pickled to {}".format(args.outfile))
 else:
-    for i in range(10):
+    scores = []
+    for i in range(100):
         X_train, X_test, y_train,y_test = train_test_split(feat, y, test_size = 0.25, random_state = int(time.time()))
         clf = svm.SVC(kernel='linear', probability=True, random_state=int(time.time()))
         clf.fit(X_train, y_train)
         score = clf.score(X_test, y_test)
         yp = clf.predict(X_test)
-        print("Y test has {} elements".format(len(y_test)))
-        ascore = metrics.accuracy_score(y_test, yp, normalize=False)
-        print("SVC Score is {}".format(score))
-        print("Ascore is {}".format(ascore))
-        print("-----")
+        # print("Y test has {} elements".format(len(y_test)))
+        # ascore = metrics.accuracy_score(y_test, yp, normalize=False)
+        # print("SVC Score is {}".format(score))
+        # print("Ascore is {}".format(ascore))
+        # print("-----")
+        scores.append(score)
+    print("Average score in 100 iterations was {}".format(sum(scores)/100))
+    print(len(y_test))
+    print(len(y_train))
+    scores = []
+    for i in range(100):
+        X_train, X_test, y_train,y_test = train_test_split(feat2, y, test_size = 0.25, random_state = int(time.time()))
+        clf = svm.SVC(kernel='linear', probability=True, random_state=int(time.time()))
+        clf.fit(X_train, y_train)
+        score = clf.score(X_test, y_test)
+        yp = clf.predict(X_test)
+        # print("Y test has {} elements".format(len(y_test)))
+        # ascore = metrics.accuracy_score(y_test, yp, normalize=False)
+        # print("SVC Score is {}".format(score))
+        # print("Ascore is {}".format(ascore))
+        # print("-----")
+        scores.append(score)
+    print("Average score in 100 iterations was {}".format(sum(scores)/100))

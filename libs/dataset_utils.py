@@ -17,7 +17,7 @@ key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5
 keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 nChordLabels = len(chord_labels)
-onset_expander = 4
+onset_expander = 2
 
 
 def get_note_data(filename, distThresh = .99):
@@ -230,7 +230,7 @@ def align_chord_notes(chords, notes):
     # ultimately, list of dicts with onset time, note, and chord
     # make an initial pass to pair each note to a corresponding chord
     # then pass through the chords to insert/append/prepend null reads for notes
-    ch_prev = 0
+    ch_prev = chords[0]['tonic_i']
     for note in notes:
         # find the corresponding chord for that time and duration
         a = {}
@@ -243,6 +243,7 @@ def align_chord_notes(chords, notes):
             ch = chords[ch_in]['tonic_i']
             ch_prev = ch
         else:
+            print("Could not find match for onset {} setting to previous label of {}".format(note_onset, ch_prev))
             ch = ch_prev
             
 
@@ -266,6 +267,54 @@ def align_chord_notes(chords, notes):
         al.append((a['onset'],a['pair']))
     return al
 
+def align_chord_notes_scale_deg(chords, notes):
+    ''' aligns chords and notes to a state/observation pair tuple
+        following notes of RS200, chords have no duration, and should be assumed that they are in play until the next chord
+    '''
+    if notes is None:
+        return []
+    alignment = [] 
+    
+    # ultimately, list of dicts with onset time, note, and chord
+    # make an initial pass to pair each note to a corresponding chord
+    # then pass through the chords to insert/append/prepend null reads for notes
+    ch_prev = chords[0]['chord_str']
+    for note in notes:
+        # find the corresponding chord for that time and duration
+        a = {}
+        note_onset = note['onset']
+        note_num = note['midi_num']
+        a['onset'] = note_onset
+        ch_in = find_corresponding_chord(note_onset, chords)
+        if ch_in != -1:
+            chords[ch_in]['used']=True
+            ch = chords[ch_in]['chord_str']
+            ch_prev = ch
+        else:
+            print("Could not find match for onset {} setting to previous label of {}".format(note_onset, ch_prev))
+            ch = ch_prev
+            
+
+        a['pair'] = [note_num, ch]
+        alignment.append(a)
+    
+    # second pass - go through chords that havent been used and insert them where they belong
+    for chord in chords:
+        if 'used' in chord:
+            continue
+        else:
+            index = find_alignment_index(chord, alignment)
+            a = {}
+            a['onset'] = chord['onset']
+            a['pair'] = [0,chord['chord_str']]
+            alignment.insert(index, a)
+
+    # one more time, create a list of just the pairs so we have something that can turn into a numpy list
+    al = []
+    for a in alignment:
+        al.append((a['onset'],a['pair']))
+    return al
+
 def alignment_to_chroma(al,key=0):
     ''' uses alignment to generate fake chroma for each chord, adding to the corresponding '''
     #chroma_seq = np.zeros((12,8)) # column per chord type, row per note
@@ -276,7 +325,7 @@ def alignment_to_chroma(al,key=0):
     for align in al:
         a = align[1]
         measure_num = align[0]
-        chord = int(a[1])
+        chord = a[1]
         note = int(a[0])
         if note == 0:
             # ignore null reads for this

@@ -49,12 +49,16 @@ def train_gaussian_models(features, labels, chord_mvs):
     return models, transitions, priors
 
 def estimate_chords(chroma, models, transitions, priors):
-    scores = np.array([model.score(chroma) for model in models])
+    scoreList = []
+    for i in range(chroma.shape[0]):
+         scoreList.append(np.array([model.score(chroma[i,:]) for model in models]))
+    scores = np.array(scoreList)
     return viterbi(np.exp(scores.transpose()), transitions, priors)
 
 def viterbi(posterior_prob, transition_prob, prior_prob):
     nFrames = posterior_prob.shape[0]
-    nStates = len(chord_roman_labels)
+    nStates = posterior_prob.shape[1]
+    print("posterior prob shape is {}".format(posterior_prob.shape))
     traceback = np.zeros((nFrames, nStates), dtype=int)
     # best probability of each state
     best_prob = prior_prob * posterior_prob[0]

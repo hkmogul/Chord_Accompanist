@@ -6,7 +6,8 @@ import os
 import numpy as np
 from os.path import basename, splitext
 import string
-
+import sys
+sys.path.append(os.path.join("..","libs"))
 from dataset_utils import *
 
 melody_folder = "melody"
@@ -36,10 +37,16 @@ for kf in key_files:
     data['midi_seq'] = midiSeq # chroma
     data['chords'] = chords # label of tonic and major minor of chords
     alignment = align_chord_notes(chords, notes) # align notes with indices of chord labels
-    chroma_seq, chord_seq = alignment_to_chroma(alignment,data['key'][0]) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
+    roman_alignment = align_chord_notes_scale_deg(chords, notes)
+    chroma_seq, chord_seq = alignment_to_chroma(alignment,0) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
+    fake_chroma_seq,chord_seq2 = alignment_to_chroma(roman_alignment, data['key'][0])
+    alignment_no_key = align_chord_notes_scale_deg(chords, notes) # align notes with indices of chord labels
     # a fake beat synchronous chroma, if you will
+    data['alignment'] = alignment
     data['chroma'] = chroma_seq
     data['chord_seq'] = chord_seq
+    data['fake_chroma'] = fake_chroma_seq
+    data['roman_chord'] = chord_seq2
     data['midi_ch'] = midi_seq_chroma(midiSeq) # 12 unit array of note usage in melody
     data['chord_stat'] = key_invariant_chord_usage_array(chords)
     if data['key'][1]:

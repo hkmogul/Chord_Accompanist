@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 import sklearn
 import time
 from random import randint
-from sklearn.model_selection import train_test_split
-from sklearn import svm
-from sklearn import metrics
 # self made libs
 from dataset_utils import *
 from hmm_utils import *
 sys.path.append(os.path.join("..","pymir"))
 sys.path.append(os.path.join("..","pymir","pymir"))
+import seqlearn
+
+
 from pymir import Pitch
 parser = argparse.ArgumentParser()
 parser.add_argument("-folder", dest = "folder",help='location of pkls')
@@ -30,52 +30,16 @@ else:
 # get all the pickles!
 pkls = glob.glob(os.path.join(folder,"*.pkl"))
 lengths = []
-chord_seq = np.empty((0)) # check for size 
-all_chroma = np.empty((0))
-all_filt_chroma = np.empty((0))
 test_index = randint(0, len(pkls))
-# transitions to each chord label. list of tuples in the form of (initial_chord, transition_chord)
-chord_mvs = [] 
 vocab = np.array(range(0,len(chord_labels)))
 count = 0
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
-    chroma = data['chroma']
-    key, isMinor = data['key']
-    filtered_chroma = remove_off_key_tones(chroma, key, isMinor)
-    
-    for i in range(0, chroma.shape[0]):
-        chroma[i,:] = chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
-        filtered_chroma[i,:] = filtered_chroma[i,:]/max(filtered_chroma[i,:].sum(), 0.00001)
-    chord_sequence = data['chord_seq']
-    if len(chord_sequence) == 0:
-        continue
+    alignment = data['alignment']
 
-    if chord_seq.shape[0] == 0:
-        chord_seq = np.array(chord_sequence)
-    else:
-        chord_seq = np.concatenate((chord_seq,np.array(chord_sequence)), axis=0)
-    if all_chroma.shape[0] == 0:
-        all_chroma = chroma
-    else:
-        all_chroma = np.concatenate((all_chroma, chroma))
-
-    if all_filt_chroma.shape[0] == 0:
-        all_filt_chroma = filtered_chroma
-    else:
-        all_filt_chroma = np.concatenate((all_filt_chroma, filtered_chroma))
-    lengths.append(len(chord_sequence))
-    init = chord_sequence[:-1]
-    dest = chord_sequence[1:]
-    chord_mvs.extend(get_move_list(chord_sequence))
     if count == test_index:
-        test_chroma = chroma
-        test_label = chord_sequence
-        test_transitions = get_move_list(chord_sequence)
-        test_filt_chroma = filtered_chroma
-        test_key = key
-        test_isMinor = isMinor
+        test_alignment = data['alignment']
         print("Test file is {}".format(p))
     count += 1
     
@@ -95,13 +59,8 @@ for t in test_transitions:
 
 # train a hybrid GMM/HMM
 models, transitions, priors = train_gaussian_models(all_chroma,chord_seq, chord_mvs)
-path = estimate_chords(test_chroma,models, transitions,priors )
 
 print("Actual labels: \n{}".format(test_label))
-print(transitions[0,0])
-print(transitions.shape)
-print(priors)
-
 
 sys.exit()
 print("Attempting a linear classifier for chord models")
