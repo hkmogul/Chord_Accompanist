@@ -18,66 +18,7 @@ keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 nChordLabels = len(chord_labels)
 
-def get_move_list(labels):
-    '''
-    Generate list of tuples of movements
-    '''
-    init = labels[:-1]
-    dest = labels[1:]
-    return list(zip(init,dest))
 
-def estimate_chord_transitions(chord_mvs):
-    ''' calculate chord movement transitions and priors from transitions '''
-    transitions = np.zeros((nChordLabels, nChordLabels))
-    counter = Counter(chord_mvs)
-    for i in range(nChordLabels):
-        for j in range(nChordLabels):
-            transitions[i,j] = 1 + counter[(i,j)]
-    
-    priors = np.sum(transitions, axis=1)
-    transitions /= priors[:,np.newaxis]
-    priors /= np.sum(priors)
-    return transitions,priors
-
-def train_gaussian_models(features, labels, chord_mvs):
-    # a gmm will return the log likelihood of a specific label
-    generic = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
-    print("Features.shape is {}".format(features.shape))
-    generic.fit(features)
-    models = []
-    for chord_index in range(nChordLabels):
-        rows = np.nonzero(labels == chord_index)
-        if rows:
-            model =  sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
-            model.fit(features[rows])
-            models.append(model)
-        else:
-            models.append(generic)
-    
-    transitions, priors = estimate_chord_transitions(chord_mvs)
-    return models, transitions, priors
-
-def estimate_chords(chroma, models, transitions, priors):
-    scores = np.array([model.score(chroma) for model in models])
-    return viterbi(np.exp(scores.transpose()), transitions, priors)
-
-def viterbi(posterior_prob, transition_prob, prior_prob):
-    nFrames = posterior_prob.shape[0]
-    nStates = len(chord_roman_labels)
-    traceback = np.zeros((nFrames, nStates), dtype=int)
-    # best probability of each state
-    best_prob = prior_prob * posterior_prob[0]
-    best_prob /= max(0.0001,np.sum(best_prob))
-    for f in range(1,nFrames):
-        poss_scores = (transition_prob * np.outer(best_prob, posterior_prob[f]))
-        traceback[f] = np.argmax(poss_scores, axis=0)
-        best_prob = np.max(poss_scores, axis=0)
-        best_prob /= max(0.001,np.sum(best_prob))
-    path = np.zeros(nFrames, dtype=int)
-    path[-1] = np.argmax(best_prob)
-    for i in range(nFrames-1, 0,-1):
-        path[i-1] = traceback[i, path[i]]
-    return path
 
 def get_note_data(filename, distThresh = .99):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
@@ -91,9 +32,9 @@ def get_note_data(filename, distThresh = .99):
         for i in range(0, len(lineList)-1):
             note = {}
             line = lineList[i]
-            onset = float(line[1])
+            onset = float(line[1])*2
             scale_deg = int(line[3]) +1 # add 1 so we can use 0 as no-pitch
-            next_onset = float(lineList[i+1][1])
+            next_onset = float(lineList[i+1][1]) *2
             duration = next_onset - onset -.01
             # default to a threshold if greater, to handle pauses
             duration = min(duration,distThresh)
@@ -106,7 +47,7 @@ def get_note_data(filename, distThresh = .99):
     # by default, say the last note has the same duration as the threshold
     note = {}
     line = lineList[-1]
-    note['onset'] = float(line[1])
+    note['onset'] = float(line[1])*2
     note['scale_deg'] = float(line[3]) +1
     note['duration'] = distThresh
     note['midi_num'] = int(line[2])
@@ -119,15 +60,34 @@ def chord_to_number(numeric):
     ''' converts the roman numeral representation of a number to the numerical value. ignores non-chord tone additions/complexities
     '''
     # get substring of all chars up to the first non char
+    allowed_chars = ['i','v','I','V']
+    orig = numeric
+    # first pass to get to a point where there are good chars
     pos = 0
-    while pos < len(numeric) and numeric[pos].isalpha() and numeric[pos] != 'd':
+    while pos < len(numeric):
+        if numeric[pos] in allowed_chars:
+            break
+        pos += 1
+    numeric = numeric[pos:]
+    pos = 0
+
+    while pos < len(numeric):
+        if numeric[pos] not in allowed_chars:
+            break
         pos+=1
     #print(numeric[:pos])
-    
+    numeric = numeric[:pos]
+    c = 0
+    maj = False
     for num in numeral2number:
         if num == numeric[:pos]:
-            return numeral2number[num], not num[0].isupper()
-    return 0, False
+            c = numeral2number[num]
+            maj =  not num[0].isupper()
+            break
+    # # check what got read as a none
+    # if c == 0:
+    #     print(orig)
+    return c, maj
 
 
 def chord_num_to_index(num, isMinor):
@@ -200,11 +160,11 @@ def get_chord_data(filename,key, isMinor):
             if len(line) < 3:
                 continue
 
-            chord['onset'] = float(line[1])
+            chord['onset'] = float(line[1]) *2
             chord_num, isMinor = chord_to_number(line[2])
             chord['chord'] = chord_num
             chord['chord_str'] = number2numeral[chord_num]
-            chord['duration'] =  float(lineList[i+1][1])-chord['onset']
+            chord['duration'] =  float(lineList[i+1][1])*2-chord['onset']
             ch_m, ch_m_i = chord_to_label(line[2], key, isMinor)
             chord['tonic'] = ch_m
             chord['tonic_i'] = ch_m_i
@@ -213,7 +173,7 @@ def get_chord_data(filename,key, isMinor):
         # last chord
         line = lineList[-1]
         chord = {}
-        chord['onset'] = float(line[1])
+        chord['onset'] = float(line[1])*2
         chord_num, isMinor = chord_to_number(line[2])
         chord['chord'] = chord_num
 

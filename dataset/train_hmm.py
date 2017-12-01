@@ -13,6 +13,7 @@ from sklearn import svm
 from sklearn import metrics
 # self made libs
 from dataset_utils import *
+from hmm_utils import *
 sys.path.append(os.path.join("..","pymir"))
 sys.path.append(os.path.join("..","pymir","pymir"))
 from pymir import Pitch
@@ -91,13 +92,10 @@ for p in pkls:
 print("Key is {}, is major? {}".format(test_key, test_isMinor))
 for t in test_transitions:
     print("{} -> {}".format(chord_labels[t[0]],chord_labels[t[1]]))
-print(test_transitions)
 
 # train a hybrid GMM/HMM
 models, transitions, priors = train_gaussian_models(all_chroma,chord_seq, chord_mvs)
-print(transitions)
-print(transitions[8,12])
-print(transitions.shape)
+
 print("Actual labels: \n{}".format(test_label))
 
 sys.exit()
