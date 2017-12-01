@@ -17,8 +17,15 @@ key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5
 keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 nChordLabels = len(chord_labels)
-onset_expander = 2
+onset_expander = 1
 
+def roman_numeral_to_number(numeric, ignoreCase = True):
+    if ignoreCase:
+        numeric = numeric.lower()
+    for num in numeral2number:
+        if numeric == num:
+            return numeral2number[num]
+    return 0
 
 def get_note_data(filename, distThresh = .99):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
@@ -143,6 +150,7 @@ def chord_num_to_note(chord_num, isMinor, tonic):
         }
 
     return switcher.get(chord_num, 0)
+
 def get_chord_data(filename,key, isMinor):
     chords = []
     with open(filename, 'r') as tsv:
@@ -243,7 +251,6 @@ def align_chord_notes(chords, notes):
             ch = chords[ch_in]['tonic_i']
             ch_prev = ch
         else:
-            print("Could not find match for onset {} setting to previous label of {}".format(note_onset, ch_prev))
             ch = ch_prev
             
 
@@ -291,7 +298,6 @@ def align_chord_notes_scale_deg(chords, notes):
             ch = chords[ch_in]['chord_str']
             ch_prev = ch
         else:
-            print("Could not find match for onset {} setting to previous label of {}".format(note_onset, ch_prev))
             ch = ch_prev
             
 
@@ -337,7 +343,7 @@ def alignment_to_chroma(al,key=0):
             first = False
             prev_chord = chord
             prev_measure = int(measure_num)
-        elif chord == prev_chord and int(measure_num) == prev_measure:
+        elif chord == prev_chord: #and int(measure_num) == prev_measure:
             chroma_seq[-1,note%12] += 1
         else: # new chord in sequence
             chroma = np.zeros((1,12))

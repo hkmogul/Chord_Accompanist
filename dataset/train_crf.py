@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-folder", dest = "folder",help='location of pkls')
 parser.add_argument("-outfile", dest = "outfile",help="destination file")
 args = parser.parse_args()
-chroma_scale = 100
+chroma_scale = 1
 if args.folder is None or not os.path.exists(args.folder):
     print("None or invalid folder specified. Will find all the pickles")
     folder = os.path.join("**","**")
@@ -61,7 +61,12 @@ for p in pkls:
         continue
     labelList = []
     for i in chord_sequence:
-        labelList.append(i)
+        intI = roman_numeral_to_number(i)
+        if intI > 7:
+            j = intI - 7
+        else:
+            j = intI
+        labelList.append(str(j))
     labels.append(labelList)
     features.append(feature_list)
     if chord_seq.shape[0] == 0:
