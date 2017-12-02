@@ -23,7 +23,7 @@ elp = time.time() - start
 # plt.show()
 
 midi = pitches_to_midi(pitch)
-beats, chroma = beat_sync_chroma(y, sr, midi,tHop=tHop)
+beats, chroma = beat_sync_chroma(y, sr, midi=None,tHop=tHop)
 for i in range(beats.shape[0]):
     print("Beat time: {}".format(beats[i]))
     print(chroma[i])
