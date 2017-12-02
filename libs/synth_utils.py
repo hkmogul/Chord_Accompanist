@@ -17,15 +17,15 @@ chord_triads = {
     ("I",False):np.array([1,0,0,1,0,0,0,1,0,0,0,0]), #minor first
     ("II",False):np.array([0,0,1,0,0,1,0,0,1,0,0,0]), # diminished 2nd
     ("III", False):np.array([0,0,0,0,1,0,0,0,1,0,0,1]), # major third
-    ("IV", False):np.array([1,0,0,0,0,1,0,0,0,1,0,0]), # perfect fourth
-    ("V",False):np.array([0,0,1,0,0,0,0,1,0,0,0,1]), #perfect fifth
+    ("IV", False):np.array([1,0,0,0,0,1,0,0,1,0,0,0]), # minor fourth
+    ("V",False):np.array([0,0,1,0,0,0,0,1,0,0,1,0]), #minor fifth (assume harmonic minor)
     ("VI", False):np.array([1,0,0,1,0,0,0,0,1,0,0,0]), # major 6th
     ("VII",False):np.array([0,0,1,0,0,1,0,0,0,0,1,0]), # major 7th
 }
 
 def get_chord_index(onset_time, chord_times):
     index = 0
-    while chord_times[index] <= onset_time:
+    while index < len(chord_times) and chord_times[index] <= onset_time:
         index += 1
     return index
 
@@ -48,3 +48,11 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
                 instrument.notes.append(note)
     midi_data.instruments.append(instrument)
     return midi_data
+
+def onset_signature_to_onsets(onset_signature, beats):
+    onsets = []
+    for i in range(len(beats)-1):
+        start = beats[i]
+        duration = beats[i+1]-beats[i]
+        onsets.extend(beat_util.measure_signature_to_onset_times(onset_signature, duration/1000, start/1000))
+    return onsets

@@ -12,6 +12,8 @@ def frange(x, y, jump):
     yield x
     x += jump
 def hz_to_midi(val, rnd = True):
+    if val == 0:
+        return 0
     mid = 69+12*math.log(val/440,2)
     if rnd:
         mid = round(mid)
@@ -20,6 +22,7 @@ def hz_to_midi(val, rnd = True):
 def pitches_to_midi(data, rnd = True):
     mfunc = np.vectorize(hz_to_midi)
     return mfunc(data,rnd=rnd)
+
 def data_usage_vector(midi):
     ''' Extract note usage vector for key estimation '''
     # get pitch of data
@@ -37,9 +40,11 @@ def beat_sync_chroma(data, fs, midi, tHop=0.01):
     pitch_index = 0
     # create chroma vector for each beat
     all_chroma = np.zeros((beats.shape[0], 12))
+    print(all_chroma.shape)
     for i in range(beats.shape[0]):
         while pitch_times[pitch_index] <= beats[i]:
-            all_chroma[i,midi[pitch_index]] +=1
+            ch_index = midi[pitch_index] % 12
+            all_chroma[i,ch_index] +=1
             pitch_index +=1
     return beats, all_chroma
 

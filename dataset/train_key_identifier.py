@@ -44,7 +44,8 @@ def isFloat(s):
 
 for p in pkls:
     data = pickle.load(open(p, "rb"))
-    key = data['key'][0] # don't care about major/minor in this case
+    key = data['key'][0]  # don't care about major/minor in this case
+    print(key)
     if key is 'unvoiced':
         continue
     ch = data['midi_ch']
