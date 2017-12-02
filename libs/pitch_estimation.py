@@ -33,14 +33,16 @@ def data_usage_vector(midi):
         chroma[midi[i]] += 1
     return chroma
 
-def beat_sync_chroma(data, fs, midi, tHop=0.01):
+def beat_sync_chroma(data, fs, midi=None, tHop=0.01):
+    if midi is None:
+        pitches = calculate_pitches(data=data, fs=fs, tHop=tHop)
+        midi = pitches_to_midi(pitches)
     tempo, beats = librosa.beat.beat_track(y=data, sr=fs, units='time')
     end_time = tHop * midi.shape[0]
     pitch_times = list(frange(0,end_time, tHop))
     pitch_index = 0
     # create chroma vector for each beat
     all_chroma = np.zeros((beats.shape[0], 12))
-    print(all_chroma.shape)
     for i in range(beats.shape[0]):
         while pitch_times[pitch_index] <= beats[i]:
             ch_index = midi[pitch_index] % 12

@@ -6,12 +6,14 @@ import matplotlib.style as ms
 import time
 import sys
 import os
+from sklearn import svm
+import pickle
 sys.path.append('..\\')
 sys.path.append(os.path.join("..","libs"))
 from pitch_estimation import *
 
 ms.use('seaborn-muted')
-
+key_estimator = pickle.load(open("key_identifier.p","rb"))
 y, sr = librosa.load('violin.wav')
 start = time.time()
 tHop = 0.01
@@ -28,3 +30,8 @@ for i in range(beats.shape[0]):
     print("Beat time: {}".format(beats[i]))
     print(chroma[i])
 hop_len = 512 # num samples for chromagram
+chroma_usage = chroma.sum(axis=0)
+normscale = 100 
+ch = normscale *chroma_usage/max(0.001,chroma_usage.sum())
+chroma_norm = ch.astype(np.uint32)
+print(key_estimator.predict([chroma_norm]))
