@@ -31,7 +31,8 @@ def estimate_chord_transitions(chord_mvs):
     return transitions,priors
 
 def train_gaussian_models(features, labels, chord_mvs):
-    # a gmm will return the log likelihood of a specific label
+    # a gmm will return the log likelihood of it being in play
+    # essentially representing a binary random variable by a mixture of 
     generic = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
     print("Features.shape is {}".format(features.shape))
     generic.fit(features)
@@ -51,15 +52,16 @@ def train_gaussian_models(features, labels, chord_mvs):
 
 def estimate_chords(chroma, models, transitions, priors):
     scoreList = []
+    posterior = np.zeros((chroma.shape[0], 7))
     for i in range(chroma.shape[0]):
-         scoreList.append(np.array([model.score(chroma[i,:]) for model in models]))
-    scores = np.array(scoreList)
-    return viterbi(np.exp(scores.transpose()), transitions, priors)
+        for j in range(7):
+            posterior[i,j] = models[j].score(chroma[i].reshape(1,-1))
+    posterior = np.array(posterior)
+    return viterbi(np.exp(posterior), transitions, priors)
 
 def viterbi(posterior_prob, transition_prob, prior_prob):
     nFrames = posterior_prob.shape[0]
     nStates = posterior_prob.shape[1]
-    print("posterior prob shape is {}".format(posterior_prob.shape))
     traceback = np.zeros((nFrames, nStates), dtype=int)
     # best probability of each state
     best_prob = prior_prob * posterior_prob[0]

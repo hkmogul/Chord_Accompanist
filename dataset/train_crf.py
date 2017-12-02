@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn import svm
 from sklearn import metrics
 import sklearn_crfsuite
+import matplotlib.pyplot as plt
 # self made libs
 sys.path.append(os.path.join("..","libs"))
 
@@ -102,6 +103,7 @@ for p in pkls:
         test_isMinor = isMinor
         test_features = feature_list
         test_labels = labelList
+        test_file = os.path.basename(p)
         print("Test file is {}".format(p))
     count += 1
 
@@ -110,21 +112,50 @@ for i in range(test_chroma.shape[0]):
 print("Training CRF")
 crf = sklearn_crfsuite.CRF(all_possible_transitions =True, max_iterations=100)
 crf.fit(features, labels)
-# print("Predicting single file")
-# print("Expected is \n{}".format(test_labels))
-# print("----\nPredicted is \n{}\n-----".format(crf.predict_single(test_features)))
+print("Predicting single file")
+print("Expected is \n{}".format(test_labels))
+prediction = crf.predict_single(test_features)
+print("----\nPredicted is \n{}\n-----".format(prediction))
+
 print("-----")
 for i in range(chroma_occurence.shape[0]):
     if chroma_occurence[i,:].sum() > 0:
         chroma_occurence[i,:] = chroma_occurence[i,:]/chroma_occurence[i,:].sum()
         #print(chroma_occurence[i,:])
-print(chroma_occurence)
+#print(chroma_occurence)
 chord_seq = chord_seq-1
 transitions, priors = estimate_chord_transitions(chord_mvs)
-print(chord_seq.shape)
-print(all_chroma.shape)
-print("------")
+# print(chord_seq.shape)
+# print(all_chroma.shape)
+# print("------")
 models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs)
-for model in models:
-    print(model)
+# for model in models:
+#     print(model)
 pickle.dump(crf, open("crf.p","wb"))
+
+print(priors)
+posterior = np.zeros((test_chroma.shape[0], 7))
+for i in range(test_chroma.shape[0]):
+    for j in range(7):
+        posterior[i,j] = models[j].score(test_chroma[i].reshape(1,-1))
+path = estimate_chords(test_chroma, models, transitions, priors)
+print("-----")
+print(path)
+print(len(path))
+
+
+groundTruth = [int(a) for a in test_labels]
+predictionLabels = [int(a) for a in prediction]
+print(len(groundTruth))
+plt.plot(groundTruth,"r",label="Ground Truth")
+plt.xlabel("Chord Change")
+plt.ylabel("Chord Number")
+plt.title("Chord transitions for File {}".format(test_file))
+plt.plot(predictionLabels,"b",label="CRF Prediction")
+plt.plot(path, "g",label="HMM Prediction")
+plt.legend()
+plt.show()
+
+print("-----")
+for i in range(len(groundTruth)):
+    print("GT: {}, CRF:{}, Viterbi:{}".format(groundTruth[i], predictionLabels[i],path[i]))

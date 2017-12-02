@@ -35,3 +35,9 @@ normscale = 100
 ch = normscale *chroma_usage/max(0.001,chroma_usage.sum())
 chroma_norm = ch.astype(np.uint32)
 print(key_estimator.predict([chroma_norm]))
+
+plt.imshow(chroma.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
+plt.xlabel("Beat Index")
+plt.ylabel("Chroma Index")
+plt.title("Beat Synchronous Mock Chroma")
+plt.show()

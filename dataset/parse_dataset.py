@@ -51,6 +51,8 @@ for kf in key_files:
     data['roman_chord'] = chord_seq2
     data['midi_ch'] = midi_seq_chroma(midiSeq) # 12 unit array of note usage in melody
     data['chord_stat'] = key_invariant_chord_usage_array(chords)
+    data['chroma_t'] = transition_chroma
+    data['chord_t'] = transition_chord
     if data['key'][1]:
         path = os.path.join(dst_folder,'major',title+'.pkl')
     else:

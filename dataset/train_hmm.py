@@ -11,17 +11,22 @@ from random import randint
 from sklearn.model_selection import train_test_split
 from sklearn import svm
 from sklearn import metrics
+import sklearn_crfsuite
+import matplotlib.pyplot as plt
 # self made libs
+sys.path.append(os.path.join("..","libs"))
+
 from dataset_utils import *
 from hmm_utils import *
 sys.path.append(os.path.join("..","pymir"))
 sys.path.append(os.path.join("..","pymir","pymir"))
-from pymir import Pitch
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-folder", dest = "folder",help='location of pkls')
 parser.add_argument("-outfile", dest = "outfile",help="destination file")
-args = parser.parse_args()
 
+args = parser.parse_args()
+chroma_scale = 1
 if args.folder is None or not os.path.exists(args.folder):
     print("None or invalid folder specified. Will find all the pickles")
     folder = os.path.join("**","**")
@@ -38,101 +43,116 @@ test_index = randint(0, len(pkls))
 chord_mvs = [] 
 vocab = np.array(range(0,len(chord_labels)))
 count = 0
+features = []
+labels = []
+chroma_occurence = np.zeros((7,12))
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
-    chroma = data['chroma']
-    key, isMinor = data['key']
-    filtered_chroma = remove_off_key_tones(chroma, key, isMinor)
-    
-    for i in range(0, chroma.shape[0]):
-        chroma[i,:] = chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
-        filtered_chroma[i,:] = filtered_chroma[i,:]/max(filtered_chroma[i,:].sum(), 0.00001)
-    chord_sequence = data['chord_seq']
+    chroma = data['fake_chroma']
+    chroma = data['chroma_t']
+    chord_sequence = data['roman_chord']
+    chord_sequence = data['chord_t']
     if len(chord_sequence) == 0:
         continue
-
+    key, isMinor = data['key']
+    feature_list = []
+    for i in range(0, chroma.shape[0]):
+        chroma_copy = np.copy(chroma[i,:])
+        chroma[i,:] =chroma_scale* chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
+        chord = chord_sequence[i]
+        intI = roman_numeral_to_number(chord_sequence[i])
+        if intI > 7:
+            intI -= 7
+        
+        for j in range(0,chroma.shape[1]):
+            chroma_occurence[intI-1,j] += chroma_copy[j]
+    labelList = []
+    labelIntList = []
+    for i in chord_sequence:
+        intI = roman_numeral_to_number(i)
+        if intI > 7:
+            j = intI - 7
+        else:
+            j = intI
+        labelList.append(str(j))
+        labelIntList.append(j)
     if chord_seq.shape[0] == 0:
-        chord_seq = np.array(chord_sequence)
+        chord_seq = np.array(labelIntList)
     else:
-        chord_seq = np.concatenate((chord_seq,np.array(chord_sequence)), axis=0)
+        chord_seq = np.concatenate((chord_seq,np.array(labelIntList)), axis=0)
     if all_chroma.shape[0] == 0:
         all_chroma = chroma
     else:
         all_chroma = np.concatenate((all_chroma, chroma))
 
-    if all_filt_chroma.shape[0] == 0:
-        all_filt_chroma = filtered_chroma
-    else:
-        all_filt_chroma = np.concatenate((all_filt_chroma, filtered_chroma))
     lengths.append(len(chord_sequence))
-    init = chord_sequence[:-1]
-    dest = chord_sequence[1:]
-    chord_mvs.extend(get_move_list(chord_sequence))
+
+    chord_mvs.extend(get_move_list(labelIntList))
     if count == test_index:
         test_chroma = chroma
         test_label = chord_sequence
-        test_transitions = get_move_list(chord_sequence)
-        test_filt_chroma = filtered_chroma
+        test_transitions = get_move_list(labelIntList)
         test_key = key
         test_isMinor = isMinor
+        test_labels = labelList
+        test_file = os.path.basename(p)
         print("Test file is {}".format(p))
     count += 1
-    
 
-for i in range(0,len(test_label)):
-    print("Label: {}\nChroma:\n{}".format(chord_labels[test_label[i]], test_chroma[i,:]))
-    # use pymir to get a naive filterbank based estimate
-    chromaList = list(test_chroma[i,:])
-    chName, maxScore = Pitch.getChord(chromaList)
-    chNameF, maxScoreF = Pitch.getChord(list(test_filt_chroma[i,:]))
-    print("Naive chord estimate: {}".format(chName))
-    print("Naive chord estimate (filtered): {}".format(chNameF))
-    print("-----")
-print("Key is {}, is minor? {}".format(test_key, test_isMinor))
-for t in test_transitions:
-    print("{} -> {}".format(chord_labels[t[0]],chord_labels[t[1]]))
+for i in range(test_chroma.shape[0]):
+    print("Chord is {}, notes are \n{}\n-----".format(test_labels[i], test_chroma[i,:]))
 
-# train a hybrid GMM/HMM
-models, transitions, priors = train_gaussian_models(all_chroma,chord_seq, chord_mvs)
-path = estimate_chords(test_chroma,models, transitions,priors )
-
-print("Actual labels: \n{}".format(test_label))
-print(transitions[0,0])
-print(transitions.shape)
+print("-----")
+for i in range(chroma_occurence.shape[0]):
+    if chroma_occurence[i,:].sum() > 0:
+        chroma_occurence[i,:] = chroma_occurence[i,:]/chroma_occurence[i,:].sum()
+        #print(chroma_occurence[i,:])
+#print(chroma_occurence)
+chord_seq = chord_seq-1
+transitions, priors = estimate_chord_transitions(chord_mvs)
+# print(chord_seq.shape)
+# print(all_chroma.shape)
+# print("------")
+models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs)
+# for model in models:
+#     print(model)
 print(priors)
+posterior = np.zeros((test_chroma.shape[0], 7))
+for i in range(test_chroma.shape[0]):
+    for j in range(7):
+        posterior[i,j] = models[j].score(test_chroma[i].reshape(1,-1))
+path = estimate_chords(test_chroma, models, transitions, priors)
+print("-----")
+print(path)
+print(len(path))
+hmm = {"models":models, "transitions":transitions, "priors":priors}
+if args.outfile is not None:
+    pickle.dump(hmm, open(args.outfile,"wb"))
+
+groundTruth = [int(a) for a in test_labels]
+print(len(groundTruth))
+plt.plot(groundTruth,"r",label="Ground Truth")
+plt.xlabel("Chord Change")
+plt.ylabel("Chord Number")
+plt.title("Chord transitions for File {}".format(test_file))
+plt.plot(path, "g",label="HMM Prediction")
+plt.legend()
+plt.show()
 
 
-sys.exit()
-print("Attempting a linear classifier for chord models")
-score_list = []
-for i in range(10):
-    X_train, X_test, y_train,y_test = train_test_split(all_chroma, chord_seq, test_size = 0.25, random_state = int(time.time()))
-    clf = svm.SVC(kernel='linear', probability=True, random_state=int(time.time()))
-    clf.fit(X_train, y_train)
-    score = clf.score(X_test, y_test)
-    score_list.append(score)
-    yp = clf.predict(X_test)
-    #print("Y test has {} elements".format(len(y_test)))
-    ascore = metrics.accuracy_score(y_test, yp, normalize=False)
-    # print("SVC Score is {}".format(score))
-    # print("Ascore is {}".format(ascore))
-    # print("-----")
-
-print("Average score unfiltered: {}".format(sum(score_list)/len(score_list)))
-score_list = []
-
-for i in range(10):
-    X_train, X_test, y_train,y_test = train_test_split(all_filt_chroma, chord_seq, test_size = 0.25, random_state = int(time.time()))
-    clf = svm.SVC(kernel='linear', probability=True, random_state=int(time.time()))
-    clf.fit(X_train, y_train)
-    score = clf.score(X_test, y_test)
-    score_list.append(score)
-    yp = clf.predict(X_test)
-    #print("Y test has {} elements".format(len(y_test)))
-    ascore = metrics.accuracy_score(y_test, yp, normalize=False)
-    #print("SVC Score is {}".format(score))
-    #print("Ascore is {}".format(ascore))
-    #print("-----")
-
-print("Average score filtered: {}".format(sum(score_list)/len(score_list)))
+plt.figure()
+plt.subplot(211)
+plt.plot(groundTruth)
+plt.xlabel("Chord Change")
+plt.ylabel("Chord Number")
+plt.title("Ground Truth Chords Per Beat for File {}".format(test_file))
+plt.subplot(212)
+plt.plot(path)
+plt.xlabel("Chord Change")
+plt.ylabel("Chord Number")
+plt.title("HMM Predicted Chords Per Beat for File {}".format(test_file))
+plt.show()
+print("-----")
+for i in range(len(groundTruth)):
+    print("GT: {}, Viterbi:{}".format(groundTruth[i],path[i]))
