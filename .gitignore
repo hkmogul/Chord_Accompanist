@@ -4,6 +4,7 @@
 *.mel
 *.pkl
 *.pyc
+*.p
 .DS_Store
 
 /pymir/

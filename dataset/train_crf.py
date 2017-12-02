@@ -43,23 +43,34 @@ vocab = np.array(range(0,len(chord_labels)))
 count = 0
 features = []
 labels = []
+chroma_occurence = np.zeros((7,12))
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
     chroma = data['fake_chroma']
-    key, isMinor = data['key']
-    feature_list = []
-    for i in range(0, chroma.shape[0]):
-        chroma[i,:] =chroma_scale* chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
-        feature_dict = {}
-        for j in range(0,chroma.shape[1]):
-            feature_dict[str(j)] = chroma[i,j]
-        feature_list.append(feature_dict)
     chord_sequence = data['roman_chord']
 
     if len(chord_sequence) == 0:
         continue
+    key, isMinor = data['key']
+    feature_list = []
+    for i in range(0, chroma.shape[0]):
+        chroma_copy = np.copy(chroma[i,:])
+        chroma[i,:] =chroma_scale* chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
+        feature_dict = {}
+        chord = chord_sequence[i]
+        intI = roman_numeral_to_number(chord_sequence[i])
+        if intI > 7:
+            intI -= 7
+        
+        for j in range(0,chroma.shape[1]):
+            feature_dict[str(j)] = chroma[i,j]
+            chroma_occurence[intI-1,j] += chroma_copy[j]
+        feature_list.append(feature_dict)
+
+
     labelList = []
+    labelIntList = []
     for i in chord_sequence:
         intI = roman_numeral_to_number(i)
         if intI > 7:
@@ -67,12 +78,13 @@ for p in pkls:
         else:
             j = intI
         labelList.append(str(j))
+        labelIntList.append(j)
     labels.append(labelList)
     features.append(feature_list)
     if chord_seq.shape[0] == 0:
-        chord_seq = np.array(chord_sequence)
+        chord_seq = np.array(labelIntList)
     else:
-        chord_seq = np.concatenate((chord_seq,np.array(chord_sequence)), axis=0)
+        chord_seq = np.concatenate((chord_seq,np.array(labelIntList)), axis=0)
     if all_chroma.shape[0] == 0:
         all_chroma = chroma
     else:
@@ -81,11 +93,11 @@ for p in pkls:
     lengths.append(len(chord_sequence))
     init = chord_sequence[:-1]
     dest = chord_sequence[1:]
-    chord_mvs.extend(get_move_list(chord_sequence))
+    chord_mvs.extend(get_move_list(labelIntList))
     if count == test_index:
         test_chroma = chroma
         test_label = chord_sequence
-        test_transitions = get_move_list(chord_sequence)
+        test_transitions = get_move_list(labelIntList)
         test_key = key
         test_isMinor = isMinor
         test_features = feature_list
@@ -98,6 +110,21 @@ for i in range(test_chroma.shape[0]):
 print("Training CRF")
 crf = sklearn_crfsuite.CRF(all_possible_transitions =True, max_iterations=100)
 crf.fit(features, labels)
-print("Predicting single file")
-print("Expected is \n{}".format(test_labels))
-print("----\nPredicted is \n{}".format(crf.predict_single(test_features)))
+# print("Predicting single file")
+# print("Expected is \n{}".format(test_labels))
+# print("----\nPredicted is \n{}\n-----".format(crf.predict_single(test_features)))
+print("-----")
+for i in range(chroma_occurence.shape[0]):
+    if chroma_occurence[i,:].sum() > 0:
+        chroma_occurence[i,:] = chroma_occurence[i,:]/chroma_occurence[i,:].sum()
+        #print(chroma_occurence[i,:])
+print(chroma_occurence)
+chord_seq = chord_seq-1
+transitions, priors = estimate_chord_transitions(chord_mvs)
+print(chord_seq.shape)
+print(all_chroma.shape)
+print("------")
+models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs)
+for model in models:
+    print(model)
+pickle.dump(crf, open("crf.p","wb"))

@@ -32,6 +32,7 @@ for kf in key_files:
     if data['key'][0] is 'unvoiced':
         continue
     notes, midiSeq = get_note_data(corr_mel)
+
     chords =get_chord_data(corr_chord, data['key'][0], not data['key'][1])
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma
@@ -39,10 +40,11 @@ for kf in key_files:
     alignment = align_chord_notes(chords, notes) # align notes with indices of chord labels
     roman_alignment = align_chord_notes_scale_deg(chords, notes)
     chroma_seq, chord_seq = alignment_to_chroma(alignment,0) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
-    fake_chroma_seq,chord_seq2 = alignment_to_chroma(roman_alignment, data['key'][0])
-    alignment_no_key = align_chord_notes_scale_deg(chords, notes) # align notes with indices of chord labels
+    fake_chroma_seq,chord_seq2 = alignment_to_chroma(roman_alignment)
+    transition_chroma, transition_chord = alignment_to_chroma(roman_alignment, data['key'][0], allow_self=True)
     # a fake beat synchronous chroma, if you will
     data['alignment'] = alignment
+    data['norm_alignment'] = roman_alignment
     data['chroma'] = chroma_seq
     data['chord_seq'] = chord_seq
     data['fake_chroma'] = fake_chroma_seq

@@ -17,7 +17,7 @@ key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5
 keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 nChordLabels = len(chord_labels)
-onset_expander = 1
+onset_expander = 10
 
 def roman_numeral_to_number(numeric, ignoreCase = True):
     if ignoreCase:
@@ -26,7 +26,6 @@ def roman_numeral_to_number(numeric, ignoreCase = True):
         if numeric == num:
             return numeral2number[num]
     return 0
-
 def get_note_data(filename, distThresh = .99):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
     notes = []
@@ -40,13 +39,14 @@ def get_note_data(filename, distThresh = .99):
             note = {}
             line = lineList[i]
             onset = float(line[1])*onset_expander
-            scale_deg = int(line[3]) +1 # add 1 so we can use 0 as no-pitch
+            scale_deg = int(line[3])  # scale degree is actually chroma???
+            # scale_deg is not normalized 
             next_onset = float(lineList[i+1][1]) *onset_expander
             duration = next_onset - onset -.01
             # default to a threshold if greater, to handle pauses
             duration = min(duration,distThresh)
             note['onset'] = onset
-            note['scale_deg'] = scale_deg
+            note['scale_deg'] = scale_deg 
             note['duration'] = duration
             note['midi_num'] = int(line[2])
             notes.append(note)
@@ -55,7 +55,7 @@ def get_note_data(filename, distThresh = .99):
     note = {}
     line = lineList[-1]
     note['onset'] = float(line[1])*onset_expander
-    note['scale_deg'] = float(line[3]) +1
+    note['scale_deg'] = float(line[3])
     note['duration'] = distThresh
     note['midi_num'] = int(line[2])
     midiSeq.append(int(line[2]) % 12)
@@ -91,9 +91,6 @@ def chord_to_number(numeric):
             c = numeral2number[num]
             maj =  not num[0].isupper()
             break
-    # # check what got read as a none
-    # if c == 0:
-    #     print(orig)
     return c, maj
 
 
@@ -203,7 +200,7 @@ def get_key(filename):
             major = True
             minor = False
             if len(res) >1:
-                if "b" in res[1]:
+                if res[1].count('b') > 1:
                     # treat anything that has added flats as minor
                     major = False
                     minor = True
@@ -321,8 +318,10 @@ def align_chord_notes_scale_deg(chords, notes):
         al.append((a['onset'],a['pair']))
     return al
 
-def alignment_to_chroma(al,key=0):
-    ''' uses alignment to generate fake chroma for each chord, adding to the corresponding '''
+def alignment_to_chroma(al,key=0, allow_self=False):
+    ''' uses alignment to generate fake chroma for each chord, adding to the corresponding 
+    allow_self = allow self transitions, akak use the time domain to generate the chroma as well
+    '''
     #chroma_seq = np.zeros((12,8)) # column per chord type, row per note
     first = True
     chord_seq = [] # chord labels
@@ -343,7 +342,7 @@ def alignment_to_chroma(al,key=0):
             first = False
             prev_chord = chord
             prev_measure = int(measure_num)
-        elif chord == prev_chord: #and int(measure_num) == prev_measure:
+        elif chord == prev_chord and ((allow_self and int(measure_num) == prev_measure) or not allow_self):
             chroma_seq[-1,note%12] += 1
         else: # new chord in sequence
             chroma = np.zeros((1,12))

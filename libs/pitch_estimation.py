@@ -1,12 +1,16 @@
 import numpy as np
 import math
+import librosa
 # function library for pitch and key estimation
 def nextpow2(n):
     i = 1
     while i < n:
         i *= 2
     return i
-
+def frange(x, y, jump):
+  while x < y:
+    yield x
+    x += jump
 def hz_to_midi(val, rnd = True):
     mid = 69+12*math.log(val/440,2)
     if rnd:
@@ -16,6 +20,28 @@ def hz_to_midi(val, rnd = True):
 def pitches_to_midi(data, rnd = True):
     mfunc = np.vectorize(hz_to_midi)
     return mfunc(data,rnd=rnd)
+def data_usage_vector(midi):
+    ''' Extract note usage vector for key estimation '''
+    # get pitch of data
+    chroma = np.zeros((0,12))
+    # normalize the octave
+    for i in range(midi.shape[0]):
+        midi[i] = midi[i] % 12
+        chroma[midi[i]] += 1
+    return chroma
+
+def beat_sync_chroma(data, fs, midi, tHop=0.01):
+    tempo, beats = librosa.beat.beat_track(y=data, sr=fs, units='time')
+    end_time = tHop * midi.shape[0]
+    pitch_times = list(frange(0,end_time, tHop))
+    pitch_index = 0
+    # create chroma vector for each beat
+    all_chroma = np.zeros((beats.shape[0], 12))
+    for i in range(beats.shape[0]):
+        while pitch_times[pitch_index] <= beats[i]:
+            all_chroma[i,midi[pitch_index]] +=1
+            pitch_index +=1
+    return beats, all_chroma
 
 # estimate pitch using cepstral domain peak-picking
 def calculate_pitches(data, lowest_hz = 40, highest_hz = 900, fs = 220500, tHop = 0.01, tW = 0.025, threshold = 1):

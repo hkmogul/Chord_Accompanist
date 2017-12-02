@@ -19,10 +19,10 @@ def get_move_list(labels):
 
 def estimate_chord_transitions(chord_mvs):
     ''' calculate chord movement transitions and priors from transitions '''
-    transitions = np.zeros((nChordLabels, nChordLabels))
+    transitions = np.zeros((7, 7))
     counter = Counter(chord_mvs)
-    for i in range(nChordLabels):
-        for j in range(nChordLabels):
+    for i in range(7):
+        for j in range(7):
             transitions[i,j] = 1 + counter[(i,j)]
     
     priors = np.sum(transitions, axis=1)
@@ -36,11 +36,12 @@ def train_gaussian_models(features, labels, chord_mvs):
     print("Features.shape is {}".format(features.shape))
     generic.fit(features)
     models = []
-    for chord_index in range(nChordLabels):
+    for chord_index in range(7):
         rows = np.nonzero(labels == chord_index)
+
         if rows:
             model =  sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
-            model.fit(features[rows])
+            model.fit(features[rows[0]])
             models.append(model)
         else:
             models.append(generic)
