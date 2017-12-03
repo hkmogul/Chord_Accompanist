@@ -35,8 +35,7 @@ def train_gaussian_models(features, labels, chord_mvs):
     generic.fit(features)
     models = []
     for chord_index in range(7):
-        rows = np.nonzero(labels == chord_index)
-
+        rows = np.where(labels == chord_index)
         if rows:
             model = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
             model.fit(features[rows[0]])
