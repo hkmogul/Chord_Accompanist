@@ -55,11 +55,11 @@ for i in range(rolled_chroma.shape[0]):
 print("Predicting chords...")
 #hmm = {"models":models, "transitions":transitions, "priors":priors}
 chords = hmm_utils.estimate_chords(rolled_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
-# for i in range(len(beats)):
-#     print("Time: {}, chords {}".format(beats[i], chords[i]))
-#     print("Corresponding chroma is \n{}".format(rolled_chroma[i,:]))
-#     if (chords[i] != 0):
-#         print("LOOK OVER HERE!!!!!!")
+#for i in range(len(beats)):
+#    print("Time: {}, chords {}".format(beats[i], chords[i]))
+#    print("Corresponding chroma is \n{}".format(rolled_chroma[i,:]))
+#    if (chords[i] != 0):
+#        print("LOOK OVER HERE!!!!!!")
 # get onset times to use
 onsets = synth_utils.onset_signature_to_onsets(onset_sig, beats)
 print("Creating MIDI...")

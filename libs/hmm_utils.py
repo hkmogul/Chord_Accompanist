@@ -17,12 +17,12 @@ def get_move_list(labels):
     dest = labels[1:]
     return list(zip(init,dest))
 
-def estimate_chord_transitions(chord_mvs):
+def estimate_chord_transitions(chord_mvs, num_chords=7):
     ''' calculate chord movement transitions and initial probabilities from transitions '''
-    transitions = np.ones((7, 7))
+    transitions = np.ones((num_chords, num_chords))
     counter = Counter(chord_mvs)
-    for i in range(7):
-        for j in range(7):
+    for i in range(num_chords):
+        for j in range(num_chords):
             transitions[i,j] += counter[(i,j)]
     
     initialProbabilities = np.sum(transitions, axis=1)
@@ -30,11 +30,11 @@ def estimate_chord_transitions(chord_mvs):
     initialProbabilities /= np.sum(initialProbabilities)
     return transitions,initialProbabilities
 
-def train_gaussian_models(features, labels, chord_mvs):
+def train_gaussian_models(features, labels, chord_mvs,num_chords=7):
     generic = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
     generic.fit(features)
     models = []
-    for chord_index in range(7):
+    for chord_index in range(num_chords):
         rows = np.where(labels == chord_index)
         if rows:
             model = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
@@ -46,11 +46,11 @@ def train_gaussian_models(features, labels, chord_mvs):
     transitions, initialProbabilities = estimate_chord_transitions(chord_mvs)
     return models, transitions, initialProbabilities
 
-def estimate_chords(chroma, models, transitions, initialProbabilities):
+def estimate_chords(chroma, models, transitions, initialProbabilities,num_chords=7):
     scoreList = []
-    posterior = np.zeros((chroma.shape[0], 7))
+    posterior = np.zeros((chroma.shape[0], num_chords))
     for i in range(chroma.shape[0]):
-        for j in range(7):
+        for j in range(num_chords):
             posterior[i,j] = models[j].score(chroma[i].reshape(1,-1))
     posterior = np.array(posterior)
     return viterbi(np.exp(posterior), transitions, initialProbabilities)
