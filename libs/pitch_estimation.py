@@ -13,7 +13,7 @@ def frange(x, y, jump):
     x += jump
 def hz_to_midi(val, rnd = True):
     if val == 0:
-        return 0
+        return -1
     mid = 69+12*math.log(val/440,2)
     if rnd:
         mid = round(mid)
@@ -30,6 +30,8 @@ def data_usage_vector(midi):
     
     # normalize the octave
     for i in range(midi.shape[0]):
+        if midi[i] == -1:
+            continue
         midi[i] = midi[i] % 12
         chroma[0,midi[i]] += 1
     return chroma
@@ -46,6 +48,10 @@ def beat_sync_chroma(data, fs, midi=None, tHop=0.01):
     all_chroma = np.zeros((beats.shape[0], 12))
     for i in range(beats.shape[0]):
         while pitch_times[pitch_index] <= beats[i]:
+            if midi[pitch_index] == -1:
+                # ignore null reads
+                pitch_index +=1
+                continue
             ch_index = midi[pitch_index] % 12
             all_chroma[i,ch_index] +=1
             pitch_index +=1

@@ -46,14 +46,17 @@ chroma_stats = pitch_estimation.data_usage_vector(midi_notes)
 
 # use the chroma stats to get key 
 key = key_identifier.predict(chroma_stats)
-print(key)
 print("Predicted key is {}".format(synth_utils.note_names[key[0]]))
 # roll chroma to get the key invariant chroma
 rolled_chroma = np.roll(all_chroma, key[0], axis=0)
 print("Predicting chords...")
 #hmm = {"models":models, "transitions":transitions, "priors":priors}
 chords = hmm_utils.estimate_chords(rolled_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
-
+# for i in range(len(beats)):
+#     print("Time: {}, chords {}".format(beats[i], chords[i]))
+#     print("Corresponding chroma is \n{}".format(rolled_chroma[i,:]))
+#     if (chords[i] != 0):
+#         print("LOOK OVER HERE!!!!!!")
 # get onset times to use
 onsets = synth_utils.onset_signature_to_onsets(onset_sig, beats)
 print("Creating MIDI...")

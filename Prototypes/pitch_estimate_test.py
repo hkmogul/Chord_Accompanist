@@ -14,15 +14,15 @@ from pitch_estimation import *
 
 ms.use('seaborn-muted')
 key_estimator = pickle.load(open("key_identifier.p","rb"))
-y, sr = librosa.load('violin.wav')
+y, sr = librosa.load('..\solo\whitneyHouston.mp3')
 start = time.time()
 tHop = 0.01
 pitch = calculate_pitches(y,fs = sr, tHop=tHop)
 elp = time.time() - start
-# print("Elapsed time: {} seconds. Length of piece: {} seconds.".format(elp, y.shape[0]/sr))
-# plt.plot(pitch)
-# plt.ylabel("Estimated pitch (Hz)")
-# plt.show()
+print("Elapsed time: {} seconds. Length of piece: {} seconds.".format(elp, y.shape[0]/sr))
+plt.plot(pitch)
+plt.ylabel("Estimated pitch (Hz)")
+plt.show()
 
 midi = pitches_to_midi(pitch)
 beats, chroma = beat_sync_chroma(y, sr, midi=None,tHop=tHop)
