@@ -3,8 +3,10 @@ import argparse
 import pickle
 import librosa
 import numpy as np
-from beat_util import *
 import sys
+import os
+sys.path.append(os.path.join("..","libs"))
+from beat_util import *
 
 parser = argparse.ArgumentParser(description='Generate beat signatures for onsets.')
 parser.add_argument('-infile', dest='infile')
@@ -14,12 +16,13 @@ if args.infile is None:
     print("Enter file pls")
     sys.exit()
 
-segments = segment_onsets(filename=args.infile)
+segments = segment_onsets(filename=args.infile, group_measures=False, group_num=4)
 signatures = []
 c = 0
 for i in range(len(segments)):
     c+= len(segments[i])
     signatures.append(create_measure_signature(segments[i]))
+    print("New signature is \n{}".format(signatures[-1]))
 
 
 if args.outfile is None:
