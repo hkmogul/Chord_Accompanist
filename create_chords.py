@@ -49,6 +49,9 @@ key = key_identifier.predict(chroma_stats)
 print("Predicted key is {}".format(synth_utils.note_names[key[0]]))
 # roll chroma to get the key invariant chroma
 rolled_chroma = np.roll(all_chroma, key[0], axis=0)
+for i in range(rolled_chroma.shape[0]):
+    rolled_chroma[i,:] = rolled_chroma[i,:]/max(0.0001,rolled_chroma[i,:].max())
+
 print("Predicting chords...")
 #hmm = {"models":models, "transitions":transitions, "priors":priors}
 chords = hmm_utils.estimate_chords(rolled_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
