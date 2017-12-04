@@ -6,6 +6,7 @@
 *.pyc
 *.p
 *.mid
+*.mp3
 .DS_Store
 
 /pymir/
