@@ -7,6 +7,7 @@ import pretty_midi
 import sklearn_crfsuite
 from sklearn import svm
 import random
+import pickle 
 sys.path.append("libs")
 import pitch_estimation
 import dataset_utils
@@ -40,14 +41,15 @@ print("Estimating pitches...")
 pitches = pitch_estimation.calculate_pitches(y,fs=sr)
 midi_notes = pitch_estimation.pitches_to_midi(pitches)
 print("Converting pitches to chroma...")
-beats, all_chroma = pitch_estimation.beat_sync_chroma(data=y, fs=sr, midi_notes)
+beats, all_chroma = pitch_estimation.beat_sync_chroma(data=y, fs=sr,midi= midi_notes)
 chroma_stats = pitch_estimation.data_usage_vector(midi_notes)
 
 # use the chroma stats to get key 
 key = key_identifier.predict(chroma_stats)
-
+print(key)
+print("Predicted key is {}".format(synth_utils.note_names[key[0]]))
 # roll chroma to get the key invariant chroma
-rolled_chroma = np.roll(all_chroma, key, axis=0)
+rolled_chroma = np.roll(all_chroma, key[0], axis=0)
 print("Predicting chords...")
 #hmm = {"models":models, "transitions":transitions, "priors":priors}
 chords = hmm_utils.estimate_chords(rolled_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])

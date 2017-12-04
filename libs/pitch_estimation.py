@@ -26,11 +26,12 @@ def pitches_to_midi(data, rnd = True):
 def data_usage_vector(midi):
     ''' Extract note usage vector for key estimation '''
     # get pitch of data
-    chroma = np.zeros((0,12))
+    chroma = np.zeros((1,12))
+    
     # normalize the octave
     for i in range(midi.shape[0]):
         midi[i] = midi[i] % 12
-        chroma[midi[i]] += 1
+        chroma[0,midi[i]] += 1
     return chroma
 
 def beat_sync_chroma(data, fs, midi=None, tHop=0.01):

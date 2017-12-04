@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import os
 import beat_util
+import dataset_utils
 np.array([0,0,0,0,0,0,0,0,0,0,0,0])
 # triads based on if the key is major or minor
 note_names = ["C","C#","D","Eb","E","F","F#","G","G#","A","B"]
@@ -33,12 +34,14 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
     ''' creates a PrettyMIDI object of chords '''
     duration = 0.25
     chord_index =0
+    print(onset_times)
     midi_data = pretty_midi.PrettyMIDI()
     inst_program = pretty_midi.instrument_name_to_program(instrument_name)
-    instrument = pretty_midi.Instrument(programm=inst_program)
+    instrument = pretty_midi.Instrument(program=inst_program)
     for time in onset_times:
         chord_index = get_chord_index(time, chord_times)
-        triad_key = (chord_sequences[chord_index], major)
+        chord_numeral = dataset_utils.number2numeral[chord_sequences[chord_index]+1].upper()
+        triad_key = (chord_numeral, major)
         activations= np.roll(chord_triads[triad_key], key)
         for i in range(12):
             if activations[i] != 0:
