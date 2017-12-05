@@ -106,7 +106,7 @@ def get_chord_label_index(num, isMajor):
         offset = 7
     else:
         offset = 0
-    return num+offset
+    return num+offset-1
 
 def get_chord_data(filename):
     chords = []
@@ -196,7 +196,7 @@ def align_chord_notes(chords, notes):
     # ultimately, list of dicts with onset time, note, and chord
     # make an initial pass to pair each note to a corresponding chord
     # then pass through the chords to insert/append/prepend null reads for notes
-    ch_prev = chords[0].label_index
+    ch_prev = chords[0].tonic
     for note in notes:
         # find the corresponding chord for that time and duration
         a = {}
@@ -206,7 +206,7 @@ def align_chord_notes(chords, notes):
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in].used =True
-            ch = chords[ch_in].label_index
+            ch = chords[ch_in].tonic
             ch_prev = ch
         else:
             ch = ch_prev
@@ -223,7 +223,7 @@ def align_chord_notes(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord.onset
-            a['pair'] = [-1,chord.label_index]
+            a['pair'] = [-1,chord.tonic]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list

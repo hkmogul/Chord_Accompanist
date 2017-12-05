@@ -38,6 +38,7 @@ for kf in key_files:
     # ignore data that doesnt have chord changes
     if len(chords) < 3:
         print("Ignoring {}, only has {} chord changes".format(title, len(chords)))
+        continue
     
     # align notes and chords
 

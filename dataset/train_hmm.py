@@ -41,23 +41,22 @@ all_filt_chroma = np.empty((0))
 test_index = randint(0, len(pkls))
 # transitions to each chord label. list of tuples in the form of (initial_chord, transition_chord)
 chord_mvs = [] 
-vocab = np.array(range(0,len(chord_labels)))
+vocab = np.array(range(0,len(chord_roman_labels)))
 count = 0
 features = []
 labels = []
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
-    chroma = data['fake_chroma']
-    chroma = data['chroma_t']
-    chord_sequence = data['roman_chord']
-    chord_sequence = data['chord_t']
-    if len(chord_sequence) == 0:
+    chroma = data['chroma_seq']
+    chord_sequence = data['chord_seq']
+    if len(chord_sequence) < 3:
         continue
     key, isMinor = data['key']
     feature_list = []
     for i in range(0, chroma.shape[0]):
         chroma_copy = np.copy(chroma[i,:])
+        chroma[i,:] = chroma[i,:] + 5
         chroma[i,:] =chroma_scale* chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
         chord = chord_sequence[i]
 
@@ -70,8 +69,8 @@ for p in pkls:
             j = intI - 7
         else:
             j = intI
-        labelList.append(str(j))
-        labelIntList.append(j)
+        labelList.append(chord_roman_labels[i])
+        labelIntList.append(i)
     if chord_seq.shape[0] == 0:
         chord_seq = np.array(labelIntList)
     else:
@@ -90,13 +89,10 @@ for p in pkls:
         test_transitions = get_move_list(labelIntList)
         test_key = key
         test_isMinor = isMinor
-        test_labels = labelList
+        test_labels = labelIntList
         test_file = os.path.basename(p)
         print("Test file is {}".format(p))
     count += 1
-
-for i in range(test_chroma.shape[0]):
-    print("Chord is {}, notes are \n{}\n-----".format(test_labels[i], test_chroma[i,:]))
 
 print("-----")
 chord_seq = chord_seq
@@ -104,14 +100,10 @@ transitions, priors = estimate_chord_transitions(chord_mvs)
 # print(chord_seq.shape)
 # print(all_chroma.shape)
 # print("------")
-models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, len(set(chord_seq)))
+models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, len(chord_roman_labels))
 # for model in models:
 #     print(model)
-print(priors)
-posterior = np.zeros((test_chroma.shape[0], 7))
-for i in range(test_chroma.shape[0]):
-    for j in range(7):
-        posterior[i,j] = models[j].score(test_chroma[i].reshape(1,-1))
+
 path = estimate_chords(test_chroma, models, transitions, priors)
 print("-----")
 hmm = {"models":models, "transitions":transitions, "priors":priors}
