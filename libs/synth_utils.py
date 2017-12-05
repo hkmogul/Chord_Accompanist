@@ -46,9 +46,10 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
         chord_index = get_chord_index(time, chord_times)
         chord_numeral = dataset_utils.number2numeral[chord_sequences[chord_index]+1].upper()
         #print("Creating chord {}, key is {}".format(chord_numeral, note_names[int(key)]))
+
         triad_key = (chord_numeral, major)
         activations= np.roll(chord_triads[triad_key], key)
-        
+        #print(activations)
         for i in range(12):
             if activations[i]== 0:
                 continue
@@ -64,10 +65,11 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
     midi_data.instruments.append(instrument)
     return midi_data
 
-def onset_signature_to_onsets(onset_signature, beats,beat_len=8):
+def onset_signature_to_onsets(onset_signature, beats,beat_len=16):
     onsets = []
     for i in range(len(beats)-beat_len):
         start = beats[i]
         duration = beats[i+beat_len]-beats[i]
         onsets.extend(beat_util.measure_signature_to_onset_times(onset_signature, duration, start))
+    print("There should be {} onsets".format(len(onsets)))
     return onsets

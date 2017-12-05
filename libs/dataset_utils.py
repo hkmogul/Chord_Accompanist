@@ -17,7 +17,7 @@ key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5
 keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 nChordLabels = len(chord_labels)
-onset_expander = 4
+onset_expander = 1
 
 def roman_numeral_to_number(numeric, ignoreCase = True):
     if ignoreCase:

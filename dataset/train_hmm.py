@@ -124,14 +124,11 @@ for i in range(test_chroma.shape[0]):
         posterior[i,j] = models[j].score(test_chroma[i].reshape(1,-1))
 path = estimate_chords(test_chroma, models, transitions, priors)
 print("-----")
-print(path)
-print(len(path))
 hmm = {"models":models, "transitions":transitions, "priors":priors}
 if args.outfile is not None:
     pickle.dump(hmm, open(args.outfile,"wb"))
 
 groundTruth = [int(a) for a in test_labels]
-print(len(groundTruth))
 plt.plot(groundTruth,"r",label="Ground Truth")
 plt.xlabel("Chord Change")
 plt.ylabel("Chord Number")
@@ -154,5 +151,9 @@ plt.ylabel("Chord Number")
 plt.title("HMM Predicted Chords Per Beat for File {}".format(test_file))
 plt.show()
 print("-----")
-for i in range(len(groundTruth)):
-    print("GT: {}, Viterbi:{}".format(groundTruth[i],path[i]))
+print(zip(groundTruth, path))
+
+# plot mock beat sync chroma
+plt.figure()
+plt.imshow(test_chroma.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
+plt.show()

@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import librosa
+import matplotlib.pyplot as plt
 # function library for pitch and key estimation
 def nextpow2(n):
     i = 1
@@ -57,8 +58,9 @@ def beat_sync_chroma(data, fs, midi=None, tHop=0.01):
             pitch_index +=1
     return beats, all_chroma
 
+
 # estimate pitch using cepstral domain peak-picking
-def calculate_pitches(data, lowest_hz = 40, highest_hz = 900, fs = 220500, tHop = 0.01, tW = 0.025, threshold = 1):
+def calculate_pitches(data, lowest_hz = 40, highest_hz = 600, fs = 220500, tHop = 0.01, tW = 0.025, threshold = 1):
     hopSamples = math.floor(fs*tHop)
     windowSamples = math.floor(fs*tW)
     minPeriodSamples = math.floor(fs * (1/highest_hz))
@@ -86,8 +88,6 @@ def calculate_pitches(data, lowest_hz = 40, highest_hz = 900, fs = 220500, tHop 
         lifter[Lc:half_cepstrum.shape[0]] = 1
         ht_cepstrum = np.real(half_cepstrum * lifter)
         # we want to reject values outside of the min and max
-        count = 0
-        foundCandidate = False
         window = np.indices(ht_cepstrum.shape)
         filt = np.logical_or(window >= minPeriodSamples, window <= maxPeriodSamples).astype(np.uint8)        
         ht_cepstrum = filt * ht_cepstrum
@@ -101,4 +101,19 @@ def calculate_pitches(data, lowest_hz = 40, highest_hz = 900, fs = 220500, tHop 
             pitch[index] = 0
     return pitch        
 
+def group_beat_chroma(beat_times, chroma, group_num=4):
+    ''' sum beat sync chroma together per beat. returns the new beat times and summed chroma '''
+    new_chroma = []
+    new_beat_times = []
+    for i in range(len(beat_times)):
+        if i % group_num == 0:
+            # create a new chroma vector to sum other ones with
+            chroma_init = chroma[i,:]
+            new_chroma.append(chroma_init)
+            new_beat_times.append(beat_times[i])
+        else:
+            new_chroma[-1] = new_chroma[-1] + chroma[i,:]
+    chr_array = np.array(new_chroma)
+    return new_beat_times, chr_array
+    
 

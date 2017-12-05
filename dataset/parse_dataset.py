@@ -40,6 +40,7 @@ for kf in key_files:
     alignment = align_chord_notes(chords, notes) # align notes with indices of chord labels
     roman_alignment = align_chord_notes_scale_deg(chords, notes)
     chroma_seq, chord_seq = alignment_to_chroma(alignment,0) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
+    chroma_seq_self, chord_seq_self = alignment_to_chroma(alignment,0,allow_self=True)
     fake_chroma_seq,chord_seq2 = alignment_to_chroma(roman_alignment)
     transition_chroma, transition_chord = alignment_to_chroma(roman_alignment, data['key'][0], allow_self=True)
     # a fake beat synchronous chroma, if you will
@@ -53,6 +54,8 @@ for kf in key_files:
     data['chord_stat'] = key_invariant_chord_usage_array(chords)
     data['chroma_t'] = transition_chroma
     data['chord_t'] = transition_chord
+    data['chroma_s'] = chroma_seq_self
+    data['chord_s'] = chord_seq_self
     if data['key'][1]:
         path = os.path.join(dst_folder,'major',title+'.pkl')
     else:
