@@ -18,7 +18,7 @@ import synth_utils
 import hmm_utils
 
 key_identifier_file = "key_identifier.p"
-hmm_file = "hmm4.p"
+hmm_file = "hmm.p"
 parser = argparse.ArgumentParser()
 parser.add_argument("-infile", dest = "infile",help='location of audio file')
 parser.add_argument("-onsetData", dest="onsetfile", help="location of pickle file of onset pattern to use")

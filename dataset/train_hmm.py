@@ -45,7 +45,6 @@ vocab = np.array(range(0,len(chord_labels)))
 count = 0
 features = []
 labels = []
-chroma_occurence = np.zeros((7,12))
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
@@ -61,16 +60,12 @@ for p in pkls:
         chroma_copy = np.copy(chroma[i,:])
         chroma[i,:] =chroma_scale* chroma[i,:]/max(chroma[i,:].sum(), 0.00001)
         chord = chord_sequence[i]
-        intI = roman_numeral_to_number(chord_sequence[i])
-        if intI > 7:
-            intI -= 7
-        
-        for j in range(0,chroma.shape[1]):
-            chroma_occurence[intI-1,j] += chroma_copy[j]
+
     labelList = []
     labelIntList = []
     for i in chord_sequence:
-        intI = roman_numeral_to_number(i)
+        #intI = roman_numeral_to_number(i)
+        intI = i
         if intI > 7:
             j = intI - 7
         else:
@@ -104,17 +99,12 @@ for i in range(test_chroma.shape[0]):
     print("Chord is {}, notes are \n{}\n-----".format(test_labels[i], test_chroma[i,:]))
 
 print("-----")
-for i in range(chroma_occurence.shape[0]):
-    if chroma_occurence[i,:].sum() > 0:
-        chroma_occurence[i,:] = chroma_occurence[i,:]/chroma_occurence[i,:].sum()
-        #print(chroma_occurence[i,:])
-#print(chroma_occurence)
-chord_seq = chord_seq-1
+chord_seq = chord_seq
 transitions, priors = estimate_chord_transitions(chord_mvs)
 # print(chord_seq.shape)
 # print(all_chroma.shape)
 # print("------")
-models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs)
+models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, len(set(chord_seq)))
 # for model in models:
 #     print(model)
 print(priors)

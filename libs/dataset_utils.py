@@ -262,7 +262,7 @@ def align_chord_notes(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord['onset']
-            a['pair'] = [0,chord['tonic_i']]
+            a['pair'] = [-1,chord['tonic_i']]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list
@@ -282,17 +282,17 @@ def align_chord_notes_scale_deg(chords, notes):
     # ultimately, list of dicts with onset time, note, and chord
     # make an initial pass to pair each note to a corresponding chord
     # then pass through the chords to insert/append/prepend null reads for notes
-    ch_prev = chords[0]['chord_str']
+    ch_prev = chords[0]['chord']
     for note in notes:
         # find the corresponding chord for that time and duration
         a = {}
         note_onset = note['onset']
-        note_num = note['midi_num']
+        note_num = note['scale_deg']
         a['onset'] = note_onset
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in]['used']=True
-            ch = chords[ch_in]['chord_str']
+            ch = chords[ch_in]['chord']
             ch_prev = ch
         else:
             ch = ch_prev
@@ -301,7 +301,7 @@ def align_chord_notes_scale_deg(chords, notes):
         a['pair'] = [note_num, ch]
         alignment.append(a)
     
-    # second pass - go through chords that havent been used and insert them where they belong
+    # second pass - go through chords that havent been used and insert them where they belong with a -1 for no note
     for chord in chords:
         if 'used' in chord:
             continue
@@ -309,7 +309,7 @@ def align_chord_notes_scale_deg(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord['onset']
-            a['pair'] = [0,chord['chord_str']]
+            a['pair'] = [-1,chord['chord']]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list
@@ -332,7 +332,7 @@ def alignment_to_chroma(al,key=0, allow_self=False):
         measure_num = align[0]
         chord = a[1]
         note = int(a[0])
-        if note == 0:
+        if note == -1:
             # ignore null reads for this
             continue
         elif first:
