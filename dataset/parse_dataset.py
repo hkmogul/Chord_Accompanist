@@ -8,7 +8,7 @@ from os.path import basename, splitext
 import string
 import sys
 sys.path.append(os.path.join("..","libs"))
-from dataset_utils import *
+import dataset_utils as dsu
 
 melody_folder = "melody"
 chord_folder = "chords"
@@ -27,35 +27,31 @@ for kf in key_files:
         print(":(")
         continue
     data = {}
-    data['key'] = get_key(kf)
-    # ignore data that doesn't provide a key
-    if data['key'][0] is 'unvoiced':
-        continue
-    notes, midiSeq = get_note_data(corr_mel)
+    key_data = dsu.get_key(kf)
 
-    chords =get_chord_data(corr_chord, data['key'][0], not data['key'][1])
+    # ignore data that doesn't provide a key
+    if key_data[0] is 'unvoiced':
+        continue
+    data['key'] = key_data
+    notes, midiSeq = dsu.get_note_data(corr_mel)
+    chords = dsu.get_chord_data(corr_chord)
+    # ignore data that doesnt have chord changes
+    if len(chords) < 3:
+        print("Ignoring {}, only has {} chord changes".format(title, len(chords)))
+    
+    # align notes and chords
+
+    data['key'] = key_data
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma
     data['chords'] = chords # label of tonic and major minor of chords
-    alignment = align_chord_notes(chords, notes) # align notes with indices of chord labels
-    roman_alignment = align_chord_notes_scale_deg(chords, notes)
-    chroma_seq, chord_seq = alignment_to_chroma(alignment,0) # turn alignment into series of fake chroma corresponding to occurence of chroma in a certain chord
-    chroma_seq_self, chord_seq_self = alignment_to_chroma(alignment,0,allow_self=True)
-    fake_chroma_seq,chord_seq2 = alignment_to_chroma(roman_alignment)
-    transition_chroma, transition_chord = alignment_to_chroma(roman_alignment, data['key'][0], allow_self=True)
-    # a fake beat synchronous chroma, if you will
+    alignment = dsu.align_chord_notes(chords, notes)
     data['alignment'] = alignment
-    data['norm_alignment'] = roman_alignment
-    data['chroma'] = chroma_seq
+    chroma_seq, chord_seq = dsu.alignment_to_chroma(alignment, key=0, allow_self=True)
+    data['chroma_seq'] = chroma_seq
     data['chord_seq'] = chord_seq
-    data['fake_chroma'] = fake_chroma_seq
-    data['roman_chord'] = chord_seq2
-    data['midi_ch'] = midi_seq_chroma(midiSeq) # 12 unit array of note usage in melody
-    data['chord_stat'] = key_invariant_chord_usage_array(chords)
-    data['chroma_t'] = transition_chroma
-    data['chord_t'] = transition_chord
-    data['chroma_s'] = chroma_seq_self
-    data['chord_s'] = chord_seq_self
+    note_usage = dsu.midi_seq_chroma(midiSeq)
+    data['note_usage'] = note_usage
     if data['key'][1]:
         path = os.path.join(dst_folder,'major',title+'.pkl')
     else:
