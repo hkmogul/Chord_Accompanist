@@ -28,7 +28,8 @@ for kf in key_files:
         continue
     data = {}
     key_data = dsu.get_key(kf)
-
+    title_tru = dsu.get_title(kf)
+    data['title'] = title_tru
     # ignore data that doesn't provide a key
     if key_data[0] is 'unvoiced':
         continue
@@ -46,11 +47,17 @@ for kf in key_files:
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma
     data['chords'] = chords # label of tonic and major minor of chords
-    alignment = dsu.align_chord_notes(chords, notes)
+    alignment = dsu.align_chord_notes(chords, notes, prop ="tonic")
+    # mode variant alignment
+    alignment_mode = dsu.align_chord_notes(chords,notes, prop="label_index")
     data['alignment'] = alignment
+    data['alignment_mode'] = alignment_mode
     chroma_seq, chord_seq = dsu.alignment_to_chroma(alignment, key=0, allow_self=True)
+    chroma_seq2, chord_seq2 = dsu.alignment_to_chroma(alignment_mode, key=0, allow_self=False)
     data['chroma_seq'] = chroma_seq
     data['chord_seq'] = chord_seq
+    data['chroma_seq2'] = chroma_seq2
+    data['chord_seq2'] = chord_seq2
     note_usage = dsu.midi_seq_chroma(midiSeq)
     data['note_usage'] = note_usage
     if data['key'][1]:

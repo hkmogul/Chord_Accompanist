@@ -48,8 +48,8 @@ labels = []
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
-    chroma = data['chroma_seq']
-    chord_sequence = data['chord_seq']
+    chroma = data['chroma_seq2']
+    chord_sequence = data['chord_seq2']
     if len(chord_sequence) < 3:
         continue
     key, isMinor = data['key']
@@ -64,11 +64,6 @@ for p in pkls:
     labelIntList = []
     for i in chord_sequence:
         #intI = roman_numeral_to_number(i)
-        intI = i
-        if intI > 7:
-            j = intI - 7
-        else:
-            j = intI
         labelList.append(chord_roman_labels[i])
         labelIntList.append(i)
     if chord_seq.shape[0] == 0:
@@ -101,7 +96,7 @@ transitions, priors = estimate_chord_transitions(chord_mvs)
 # print(chord_seq.shape)
 # print(all_chroma.shape)
 # print("------")
-models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, len(chord_roman_invariant))
+models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, len(chord_roman_labels))
 # for model in models:
 #     print(model)
 
@@ -118,7 +113,7 @@ plt.ylabel("Chord Number")
 plt.title("Chord transitions for Song: {} ".format(test_file))
 plt.plot(path, "g",label="HMM Prediction")
 axes = plt.gca()
-axes.set_ylim([-1,7])
+axes.set_ylim([-1,len(chord_roman_labels)])
 plt.legend()
 plt.show()
 

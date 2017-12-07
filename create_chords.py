@@ -17,7 +17,7 @@ import synth_utils
 import hmm_utils
 
 key_identifier_file = "key_identifier.p"
-hmm_file = "hmm4.p"
+hmm_file = "hmm.p"
 parser = argparse.ArgumentParser()
 parser.add_argument("-infile", dest = "infile",help='location of audio file')
 parser.add_argument("-onsetData", dest="onsetfile", help="location of pickle file of onset pattern to use")
@@ -38,52 +38,48 @@ if args.timeSig is None:
     timeSig = 4
 else:
     timeSig = int(args.timeSig)
+if args.onsetfile is None:
+    onset_sig = np.zeros((1000))
+    onset_sig[0] = 1
+else:
+    onset_signatures = pickle.load(open(args.onsetfile, "rb"))
+    onset_sig = random.choice(onset_signatures)
 
 key_identifier = pickle.load(open(key_identifier_file, "rb"))
 hmm_data = pickle.load(open(hmm_file,"rb"))
-onset_signatures = pickle.load(open(args.onsetfile, "rb"))
-onset_sig = random.choice(onset_signatures)
+
 # get pitches, chroma stats, and beat sync chroma of the input file
 y,sr = librosa.load(args.infile)
-print("Estimating pitches...")
-pitches = pitch_estimation.calculate_pitches(y,fs=sr)
-midi_notes = pitch_estimation.pitches_to_midi(pitches)
-print("Converting pitches to chroma...")
-beats, all_chroma = pitch_estimation.beat_sync_chroma(data=y, fs=sr,midi= midi_notes)
-chroma_stats = pitch_estimation.data_usage_vector(midi_notes)
-
-# use the chroma stats to get key 
-key = key_identifier.predict(chroma_stats)
+# attempt again, but use the true beat synchronous chroma
+print("Predicting chords from true chroma...")
+true_beats, true_chroma = pitch_estimation.true_beat_sync_chroma(data=y,fs=sr)
+data_usage_vector = true_chroma.sum(axis=0)
+print(data_usage_vector.shape)
+key = key_identifier.predict(data_usage_vector.reshape(1, -1))
 print("Predicted key is {}".format(synth_utils.note_names[key[0]]))
-# roll chroma to get the key invariant chroma
-rolled_chroma = np.roll(all_chroma, key[0], axis=0)
-for i in range(rolled_chroma.shape[0]):
-    rolled_chroma[i,:] = rolled_chroma[i,:]/max(0.0001,rolled_chroma[i,:].sum())
-
-print("Predicting chords...")
-new_beats,group_chr = pitch_estimation.group_beat_chroma(beats, rolled_chroma,group_num=timeSig)
-for i in range(group_chr.shape[0]):
-    rank = group_chr[i,:].flatten()
+if key[0] != 0:
+    print("Rolling chroma to match the key")
+    true_chroma = np.roll(true_chroma, key[0], axis=0)
+# group by the time signature
+true_beats,true_chroma = pitch_estimation.group_beat_chroma(true_beats, true_chroma, group_num=timeSig)
+for i in range(true_chroma.shape[0]):
+    rank = true_chroma[i,:].flatten()
     rank.sort()
-    thresh = rank[-3]
+    thresh = rank[-5] # allow only the top 5 notes
     for j in range(len(rank)):
-        if group_chr[i,j] < thresh:
-            group_chr[i,j] = 0
-    group_chr[i,:] = group_chr[i,:]/max(0.0001, group_chr[i,:].sum())
+        if true_chroma[i,j] < thresh:
+            true_chroma[i,j] = 0
+    # renormalize
+    true_chroma[i,:] = true_chroma[i,:]/max(0.0001, true_chroma[i,:].sum())
 
-plt.imshow(group_chr.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
-plt.xlabel("Beat Index")
-plt.ylabel("Chroma Index")
-plt.title("Beat Synchronous Chroma")
-plt.show()
-chords = hmm_utils.estimate_chords(group_chr, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
-for i in range(len(new_beats)):
-   print("Time: {}, chords {}".format(new_beats[i], chords[i]))
-   if (chords[i] != 0):
-       print("LOOK OVER HERE!!!!!!")
-# get onset times to use
-onsets = synth_utils.onset_signature_to_onsets(onset_sig, beats)
+chords = hmm_utils.estimate_chords(true_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
+for i in range(len(true_beats)):
+    print("Time: {}, chords {}".format(true_beats[i], chords[i]))
+
+
+onsets = synth_utils.onset_signature_to_onsets(onset_sig, true_beats)
 print("Creating MIDI...")
 # use chord progression, onset pattern, key, and mode to create MIDI output
-mid = synth_utils.create_pretty_midi(chords, new_beats, onsets, key=key, major=major)
+mid = synth_utils.create_pretty_midi(chords, true_beats, onsets, key=key, major=major)
 mid.write(args.outfile)
+

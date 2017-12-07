@@ -16,6 +16,7 @@ key2Num = {"[C]":0,"[C#]":1,"[Db]":1,"[D]":2, "[D#]":3, "[Eb]":3,"[E]":4,"[F]":5
 keyList = list(set([v for k,v in key2Num.items()]))
 num2Key = {v:k for k,v in key2Num.items()}
 mode_invariant_roman= {"I":1,"II":2,"III":3,"IV":4,"V":5,"VI":6,"VII":7}
+chord_roman_invariant = [k for k,v in mode_invariant_roman.items()]
 
 
 onset_expander = 2
@@ -143,6 +144,13 @@ def get_chord_data(filename):
             chords.append(chord)
     return chords
 
+def get_title(filename):
+    with open(filename, 'r') as f:
+        for line in f.readlines():
+            if line[0:2] =="% ":
+                title = line[2:]
+                return title
+    return filename
 
 def get_key(filename):
     with open(filename,'r') as f:
@@ -185,7 +193,7 @@ def find_alignment_index(chord, align):
             return i
     return len(align) # corresponds to the chord being appended
 
-def align_chord_notes(chords, notes):
+def align_chord_notes(chords, notes, prop ="tonic"):
     ''' aligns chords and notes to a state/observation pair tuple
         following notes of RS200, chords have no duration, and should be assumed that they are in play until the next chord
     '''
@@ -196,7 +204,10 @@ def align_chord_notes(chords, notes):
     # ultimately, list of dicts with onset time, note, and chord
     # make an initial pass to pair each note to a corresponding chord
     # then pass through the chords to insert/append/prepend null reads for notes
-    ch_prev = chords[0].tonic
+    if prop=="tonic":
+        ch_prev = chords[0].tonic-1
+    else:
+        ch_prev = chords[0].label_index
     for note in notes:
         # find the corresponding chord for that time and duration
         a = {}
@@ -206,7 +217,11 @@ def align_chord_notes(chords, notes):
         ch_in = find_corresponding_chord(note_onset, chords)
         if ch_in != -1:
             chords[ch_in].used =True
-            ch = chords[ch_in].tonic
+            if prop == "tonic":
+                ch = chords[ch_in].tonic-1
+            else:
+                ch = chords[ch_in].label_index
+
             ch_prev = ch
         else:
             ch = ch_prev
@@ -223,7 +238,10 @@ def align_chord_notes(chords, notes):
             index = find_alignment_index(chord, alignment)
             a = {}
             a['onset'] = chord.onset
-            a['pair'] = [-1,chord.tonic]
+            if prop == "tonic":
+                a['pair'] = [-1,chord.tonic-1]
+            else:
+                a['pair'] = [-1,chord.label_index]
             alignment.insert(index, a)
 
     # one more time, create a list of just the pairs so we have something that can turn into a numpy list

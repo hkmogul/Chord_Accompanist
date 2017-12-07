@@ -30,7 +30,7 @@ def get_chord_index(onset_time, chord_times):
         index += 1
     return index
 
-def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_name='Acoustic Grand Piano', octave=5,key=0,major=True):
+def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_name='Acoustic Grand Piano', octave=4,key=0,major=True):
     ''' creates a PrettyMIDI object of chords '''
     duration = 0.25
     chord_index =0

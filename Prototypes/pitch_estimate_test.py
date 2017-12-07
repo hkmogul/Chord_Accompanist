@@ -45,37 +45,9 @@ plt.title("Beat Synchronous Mock Chroma")
 plt.show()
 
 # get raw audio form of beat synchronous chroma
-true_chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_len)
-beat_frames = librosa.core.time_to_frames(beats, sr=sr, hop_length=hop_len)
-true_beat_sync_chrom = librosa.util.sync(true_chroma, beat_frames).transpose()
-true_ch_usage = true_chroma.transpose().sum(axis=0)
-ch = normscale *true_ch_usage/max(0.001,true_ch_usage.sum())
-chroma_norm = ch.astype(np.uint32)
-print(key_estimator.predict([chroma_norm]))
-print(true_beat_sync_chrom.shape)
-for i in range(0, true_beat_sync_chrom.shape[0]):
-    norm = true_beat_sync_chrom[i,:]
-    norm = norm/max(norm.sum(),0.0001)
-    # threshold the normalization, then renormalize
-    norm_f = norm.flatten()
-    norm_f.sort()
-    thresh  = norm_f[-2]
-    for i in range(12):
-        if norm[i] < thresh:
-            norm[i] = 0
-    norm = norm/max(norm.sum(),0.0001)
-    true_beat_sync_chrom[i,:] = norm
 
-plt.imshow(true_beat_sync_chrom.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
-plt.xlabel("Beat Index")
-plt.ylabel("Chroma Index")
-plt.title("Beat Synchronous Chroma")
-plt.show()
-
-new_beats,group_chr = group_beat_chroma(beat_frames, true_beat_sync_chrom,group_num=16)
-
-plt.imshow(group_chr.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
-plt.xlabel("Beat Index")
-plt.ylabel("Chroma Index")
-plt.title("Beat Synchronous Chroma Grouped by 4")
+beats, chroma = beat_sync_chroma(data=y, fs=sr)
+plt.imshow(chroma.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
+for i in range(chroma.shape[0]):
+    print("Index {}, max is {}, min is {}".format(i,chroma[i,:].max(), chroma[i,:].min()))
 plt.show()

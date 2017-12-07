@@ -58,7 +58,11 @@ def beat_sync_chroma(data, fs, midi=None, tHop=0.01):
             pitch_index +=1
     return beats, all_chroma
 
-
+def true_beat_sync_chroma(data, fs, frame_len=512):
+    tempo, beats = librosa.beat.beat_track(y=data, sr=fs, units='frames', hop_length=frame_len)
+    chroma = librosa.feature.chroma_cqt(y=data, sr=fs, hop_length=frame_len)
+    sync_chroma = librosa.util.sync(chroma, beats)
+    return librosa.frames_to_time(beats, sr=fs, hop_length=frame_len), sync_chroma.transpose()
 # estimate pitch using cepstral domain peak-picking
 def calculate_pitches(data, lowest_hz = 40, highest_hz = 600, fs = 220500, tHop = 0.01, tW = 0.025, threshold = 1):
     hopSamples = math.floor(fs*tHop)
