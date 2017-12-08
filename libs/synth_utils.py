@@ -37,18 +37,26 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
     midi_data = pretty_midi.PrettyMIDI()
     inst_program = pretty_midi.instrument_name_to_program(instrument_name)
     instrument = pretty_midi.Instrument(program=inst_program)
+    prev_onset_time = 0
+    prev_velocity = 0
     for i in range(len(onset_times)):
         time = onset_times[i]
         if i == len(onset_times)-1:
             duration = 0.5
         else:
-            duration = (onset_times[i+1] - time)*.5
+            duration = abs((onset_times[i+1] - time)*.5)
+
         chord_index = get_chord_index(time, chord_times)
         chord_numeral = dataset_utils.number2numeral[chord_sequences[chord_index]+1].upper()
         #print("Creating chord {}, key is {}".format(chord_numeral, note_names[int(key)]))
-
+        if time -prev_onset_time < 0.1:
+            velocity = int(prev_velocity * .75)
+        else:
+            velocity = 100
         triad_key = (chord_numeral, major)
-        activations= np.roll(chord_triads[triad_key], key)
+        activations = chord_triads[triad_key]
+        if key != 0:
+            activations= np.roll(chord_triads[triad_key], key)
         #print(activations)
         for i in range(12):
             if activations[i]== 0:
@@ -57,10 +65,12 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
             noteName = note_names[i]+str(octave)
             #print(noteName)
             noteNum = pretty_midi.note_name_to_number(noteName)
-            note = pretty_midi.Note(velocity=100, pitch=noteNum, start=time, end=time+duration)
+            note = pretty_midi.Note(velocity=velocity, pitch=noteNum, start=time, end=time+duration)
             instrument.notes.append(note)
             #print("---")
         #print("---------------")
+        prev_velocity = velocity
+        prev_onset_time = time
 
     midi_data.instruments.append(instrument)
     return midi_data
@@ -71,5 +81,14 @@ def onset_signature_to_onsets(onset_signature, beats,beat_len=16):
         start = beats[i]
         duration = beats[i+beat_len]-beats[i]
         onsets.extend(beat_util.measure_signature_to_onset_times(onset_signature, duration, start))
-    print("There should be {} onsets".format(len(onsets)))
     return onsets
+
+riemann_pairs = {0:2,1:3,2:4,3:5,4:6,5:7,6:0,7:1}
+def riemann_transform(chords, allowed_chords):
+    chords_r = []
+    for i in range(len(chords)):
+        if chords[i] not in allowed_chords:
+            chords_r.append(riemann_pairs[chords[i]])
+        else:
+            chords_r.append(chords[i])
+    return chords_r

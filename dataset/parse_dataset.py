@@ -42,7 +42,7 @@ for kf in key_files:
         continue
     
     # align notes and chords
-
+    print("Key is {}, major is {}".format(key_data[0], key_data[1]))
     data['key'] = key_data
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma

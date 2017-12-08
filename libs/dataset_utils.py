@@ -160,17 +160,19 @@ def get_key(filename):
                 continue
             if res[0] in key2Num:
                 key = key2Num[res[0]]
+                print(key)
             else:
                 key = 'unvoiced'
                 print("{}???".format(res[0]))
             major = True
             minor = False
             if len(res) >1:
+                print(res)
                 if res[1].count('b') > 1:
                     # treat anything that has added flats as minor
                     major = False
                     minor = True
-            return key, minor
+            return key, major
     return 'unvoiced',False
 
 def find_corresponding_chord(onset, chords):
