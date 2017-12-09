@@ -91,16 +91,15 @@ for p in pkls:
     count += 1
 
 print("-----")
-chord_seq = chord_seq
-transitions, priors = estimate_chord_transitions(chord_mvs)
+print(chord_mvs)
 # print(chord_seq.shape)
 # print(all_chroma.shape)
 # print("------")
-models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, len(chord_roman_labels))
+models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, num_chords=len(chord_roman_labels))
 # for model in models:
 #     print(model)
-
-path = estimate_chords(test_chroma, models, transitions, priors)
+print(transitions.shape)
+path = estimate_chords(test_chroma, models, transitions, priors, num_chords=len(chord_roman_labels))
 print("-----")
 hmm = {"models":models, "transitions":transitions, "priors":priors}
 if args.outfile is not None:

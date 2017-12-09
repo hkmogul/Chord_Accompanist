@@ -142,8 +142,18 @@ def get_chord_data(filename):
             chord.label_index = get_chord_label_index(chord.tonic, chord.isMajor)
             chord.duration = 500 # make the last chord last a long time
             chords.append(chord)
+    # iterate through to see if there were more i or I chords
     return chords
-
+def analyze_chords(chords):
+    num_1min = 0
+    num_1maj = 0
+    for chord in chords:
+        if chord.tonic ==1 and chord.isMajor:
+            num_1maj += 1
+        elif chord.tonic == 1 and not chord.isMajor:
+            num_1min += 1
+    print("Number of i chords: {}. Number of I chords {}".format(num_1min, num_1maj))
+    return num_1min,num_1maj
 def get_title(filename):
     with open(filename, 'r') as f:
         for line in f.readlines():

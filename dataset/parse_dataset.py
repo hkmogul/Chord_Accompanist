@@ -43,10 +43,22 @@ for kf in key_files:
     
     # align notes and chords
     print("Key is {}, major is {}".format(key_data[0], key_data[1]))
-    data['key'] = key_data
     data['notes'] = notes # midi number, onset/offset time, and scale degree
     data['midi_seq'] = midiSeq # chroma
     data['chords'] = chords # label of tonic and major minor of chords
+    numMin, numMaj = dsu.analyze_chords(chords)
+    if numMin > numMaj:
+        print("Chords vote for minor")
+        if key_data[1] != False:
+            print("!!!!!!!!")
+            key_data = (key_data[0], False)
+    elif numMaj > numMin:
+        print("Chords vote for major")
+        if key_data[1] != True:
+            print("!!!!!!!")
+            key_data = (key_data[0], True)
+    data['key'] = key_data
+
     alignment = dsu.align_chord_notes(chords, notes, prop ="tonic")
     # mode variant alignment
     alignment_mode = dsu.align_chord_notes(chords,notes, prop="label_index")
