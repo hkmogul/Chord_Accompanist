@@ -5,7 +5,7 @@ import pretty_midi
 
 signature_len = 1000
 
-def segment_onsets(data=None, sr=None, filename=None, group_measures=False, group_num=2):
+def segment_onsets(data=None, sr=None, filename=None, group_measures=False, group_num=2, threshold =1.25):
     """ Segment an audio file or preloaded data's onsets into each beat
 
     Args:
@@ -29,21 +29,31 @@ def segment_onsets(data=None, sr=None, filename=None, group_measures=False, grou
     tempo = tempo_est[0]
     # set trim to true because we want to segment the beats
     t2,beats = librosa.beat.beat_track(onset_envelope=onset_strength, sr = sr, bpm=tempo, trim=True)
+    print(len(beats))
     if beats.shape[0] == 0:
         return []
-    onsets = librosa.onset.onset_detect(onset_envelope=onset_strength)
+    onsets = np.where(onset_strength > threshold)[0].tolist()
+    
+    print(len(onsets))
+    print("onsets are \n{}".format(onsets))
+    print("------")
+    print("beats are \n{}".format(beats))
     beat_data = []
-    beat_data.append(onsets[0:beats[0]])
     for i in range(0,beats.shape[0]-1):
         n = beats[i]
         n0 = beats[i+1]
-        ons = onsets[n:n0]
-        if len(ons) == 0:
-            continue
-        beat_data.append(onsets[n:n0])
-    last_ons = onsets[beats[-1]:]
-    if len(last_ons) > 0:
-        beat_data.append(last_ons)
+        ons = []
+
+        # find onsets between these times
+        for o in onsets:
+            if o >= n and o <= n0:
+                ons.append(o)
+        print(n)
+        print(n0)
+        print(ons)
+        if len(ons) > 0:
+            beat_data.append(ons)
+
     if group_measures:
         new_group = group_onsets(beat_data, group_num)
         return new_group
@@ -85,6 +95,7 @@ def normalize_measure(onset_data):
     
 def stretch_measure(onset_data, length_data=1000):
     od = np.copy(onset_data)
+    print(onset_data)
     if od.max() != 1:
         od = normalize_measure(od)
     return od*length_data
@@ -110,3 +121,7 @@ def measure_signature_to_onset_times(signature, duration_ms = 1000, offset_ms =0
     onset_times = locs/signature_len
     stretch_onset = stretch_measure(onset_times, duration_ms)
     return stretch_onset + offset_ms
+
+def spectral_onsets(y,sr, threshold):
+    onsetStrength = librosa.onset.onset_strength(y=y, sr=sr)
+    

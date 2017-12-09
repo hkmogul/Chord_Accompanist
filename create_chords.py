@@ -18,13 +18,15 @@ import synth_utils
 import hmm_utils
 
 key_identifier_file = "key_identifier.p"
-hmm_file = "hmmMajor.p"
+hmm_file = "hmm.p"
 parser = argparse.ArgumentParser()
 parser.add_argument("-infile", dest = "infile",help='location of audio file')
 parser.add_argument("-onsetData", dest="onsetfile", help="location of pickle file of onset pattern to use")
-parser.add_argument("-outfile", dest = "outfile",help="destination file of midi")
+parser.add_argument("-outfile", dest = "outfile",help="destination file of mixed waveform")
+parser.add_argument("-outMidi", dest="outmidi", help="destination file of MIDI")
 parser.add_argument("-ismajor", dest="ismajor", help="True for using major chord progression, False otherwise")
 parser.add_argument("-timeSig", dest="timeSig", help="Number of beats per measure")
+
 args = parser.parse_args()
 if args.ismajor is None:
     major = True
@@ -62,33 +64,34 @@ if key[0] != 0:
     print("Rolling chroma to match the key")
     true_chroma = np.roll(true_chroma, key[0], axis=0)
 # group by the time signature
-true_beats,true_chroma = pitch_estimation.group_beat_chroma(true_beats, true_chroma, group_num=timeSig)
-for i in range(true_chroma.shape[0]):
-    rank = true_chroma[i,:].flatten()
+group_beats,group_chroma = pitch_estimation.group_beat_chroma(true_beats, true_chroma, group_num=timeSig)
+for i in range(group_chroma.shape[0]):
+    rank = group_chroma[i,:].flatten()
     rank.sort()
-    thresh = rank[-5] # allow only the top 5 notes
+    thresh = rank[-3] # allow only the top 5 notes
     for j in range(len(rank)):
-        if true_chroma[i,j] < thresh:
-            true_chroma[i,j] = 0
+        if group_chroma[i,j] < thresh:
+            group_chroma[i,j] = 0
     # renormalize
-    true_chroma[i,:] = true_chroma[i,:]/max(0.0001, true_chroma[i,:].sum())
-chords = hmm_utils.estimate_chords(true_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
+    group_chroma[i,:] = group_chroma[i,:]/max(0.0001, group_chroma[i,:].sum())
+
+chords = hmm_utils.estimate_chords(group_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
 allowed_chords = [0,3,4]
 chords_r = synth_utils.riemann_transform(chords, allowed_chords)
-# for i in range(len(chords)):
-#     print("Chord: {}, post transform:{}".format(chords[i], chords_r[i]))
+for i in range(len(chords)):
+    print("Chord: {}, post transform:{}".format(chords[i], chords_r[i]))
 # regroup to spread onset pattern
 
 
-onsets = synth_utils.onset_signature_to_onsets(onset_sig, true_beats)
+onsets = synth_utils.onset_signature_to_onsets(onset_sig, group_beats)
 print("Creating MIDI...")
 # use chord progression, onset pattern, key, and mode to create MIDI output
-mid = synth_utils.create_pretty_midi(chords, true_beats, onsets, key=key, major=major)
+mid = synth_utils.create_pretty_midi(chords, group_beats, onsets, key=key, major=major)
 
 # synthesize the data
 if sys.platform == 'win32':
     # fluidsynth tends to not work correctly with windows, use sine wave synthesis instead
-    synth = mid.synthesize(fs=sr) * 0.5
+    synth = mid.synthesize(fs=sr) * 0.5 
 else:
     synth = mid.fluidsynth(fs=sr)
 
@@ -110,3 +113,6 @@ stereo = np.stack([stereo_l, stereo_r], axis =1)
 # print(stereo.min())
 print("Writing mixed file to {}".format(args.outfile))
 librosa.output.write_wav(args.outfile, y=stereo, sr=sr)
+
+if args.outmidi is not None:
+    mid.write(args.outmidi)

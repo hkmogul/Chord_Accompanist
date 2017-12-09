@@ -30,7 +30,7 @@ def get_chord_index(onset_time, chord_times):
         index += 1
     return index
 
-def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_name='Acoustic Grand Piano', octave=4,key=0,major=True):
+def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_name='	Acoustic Guitar (nylon)', octave=4,key=0,major=True):
     ''' creates a PrettyMIDI object of chords '''
     duration = 0.25
     chord_index =0
@@ -42,9 +42,10 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
     for i in range(len(onset_times)):
         time = onset_times[i]
         if i == len(onset_times)-1:
-            duration = 0.5
+            duration = 0.25
         else:
-            duration = abs((onset_times[i+1] - time)*.5)
+            duration = abs((onset_times[i+1] - time)*.5) * .5
+            print(duration)
 
         chord_index = get_chord_index(time, chord_times)
         chord_numeral = dataset_utils.number2numeral[chord_sequences[chord_index]+1].upper()
@@ -52,7 +53,7 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
         if time -prev_onset_time < 0.1:
             velocity = int(prev_velocity * .75)
         else:
-            velocity = 100
+            velocity = 50
         triad_key = (chord_numeral, major)
         activations = chord_triads[triad_key]
         if key != 0:

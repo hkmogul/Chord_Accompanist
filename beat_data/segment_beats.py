@@ -16,13 +16,12 @@ if args.infile is None:
     print("Enter file pls")
     sys.exit()
 
-segments = segment_onsets(filename=args.infile, group_measures=False, group_num=4)
+segments = segment_onsets(filename=args.infile, group_measures=False, group_num=1)
 signatures = []
 c = 0
 for i in range(len(segments)):
     c+= len(segments[i])
     signatures.append(create_measure_signature(segments[i]))
-    print("New signature is \n{}".format(signatures[-1]))
 
 
 if args.outfile is None:

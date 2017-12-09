@@ -14,7 +14,7 @@ sys.path.append(os.path.join("..","libs"))
 from pitch_estimation import *
 
 key_estimator = pickle.load(open("key_identifier.p","rb"))
-y, sr = librosa.load('..\solo\whitneyHouston.mp3')
+y, sr = librosa.load('..\\beat_data\pop.wav')
 start = time.time()
 tHop = 0.01
 pitch = calculate_pitches(y,fs = sr, tHop=tHop)
@@ -48,6 +48,14 @@ plt.show()
 
 beats, chroma = beat_sync_chroma(data=y, fs=sr)
 plt.imshow(chroma.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
-for i in range(chroma.shape[0]):
-    print("Index {}, max is {}, min is {}".format(i,chroma[i,:].max(), chroma[i,:].min()))
+plt.show()
+
+onsetStrength = librosa.onset.onset_strength(y=y, sr=sr)
+tempo,beats = librosa.beat.beat_track(y=None, sr=sr, onset_envelope=onsetStrength, units='frames')
+plt.figure()
+for b in beats:
+    print(b)
+    plt.axvline(x=b,color='k', linestyle='--')
+
+plt.plot(onsetStrength)
 plt.show()
