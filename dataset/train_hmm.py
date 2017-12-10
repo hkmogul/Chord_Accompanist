@@ -97,7 +97,7 @@ for p in pkls:
 
 print("-----")
 chord_seq = chord_seq
-transitions, priors = estimate_chord_transitions(chord_mvs)
+#print(chord_mvs)
 # print(chord_seq.shape)
 # print(all_chroma.shape)
 # print("------")
@@ -112,7 +112,7 @@ if args.outfile is not None:
     pickle.dump(hmm, open(args.outfile,"wb"))
 
 groundTruth = [int(a) for a in test_labels]
-plt.plot(groundTruth,"r",label="Ground Truth")
+plt.plot(groundTruth,"r--",label="Ground Truth")
 plt.xlabel("Chord Change")
 plt.ylabel("Chord Number")
 plt.title("Chord transitions for Song: {} ".format(test_file))

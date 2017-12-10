@@ -68,7 +68,7 @@ for kf in key_files:
     chroma_seq2, chord_seq2 = dsu.alignment_to_chroma(alignment_mode, key=0, allow_self=False)
     data['chroma_seq'] = chroma_seq
     data['chord_seq'] = chord_seq
-    data['chroma_seq2'] = chroma_seq2
+    data['chroma_seq2'] = chroma_seq2 # the 2 ones denote labels that include the mode of the chord
     data['chord_seq2'] = chord_seq2
     note_usage = dsu.midi_seq_chroma(midiSeq)
     data['note_usage'] = note_usage

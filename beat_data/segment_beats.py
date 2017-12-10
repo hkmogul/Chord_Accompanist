@@ -22,6 +22,7 @@ c = 0
 for i in range(len(segments)):
     c+= len(segments[i])
     signatures.append(create_measure_signature(segments[i]))
+    print("New signature \n{}\n------------".format(signatures[-1]))
 
 
 if args.outfile is None:

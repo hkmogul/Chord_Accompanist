@@ -37,6 +37,11 @@ else:
     major = False
     print("Using minor chords")
 
+if major:
+    hmm_file = "hmmMajor.p"
+else:
+    hmm_file = "hmmMinor.p"
+
 if args.timeSig is None:
     timeSig = 4
 else:

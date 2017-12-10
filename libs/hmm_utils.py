@@ -34,6 +34,7 @@ def train_gaussian_models(features, labels, chord_mvs,num_chords=7):
     generic = sklearn.mixture.GaussianMixture(n_components=1,covariance_type='full')
     generic.fit(features)
     models = []
+    print(num_chords)
     for chord_index in range(num_chords):
         rows = np.where(labels == chord_index)
         print(rows[0].shape[0])
@@ -44,7 +45,7 @@ def train_gaussian_models(features, labels, chord_mvs,num_chords=7):
         else:
             models.append(generic)
     
-    transitions, initialProbabilities = estimate_chord_transitions(chord_mvs)
+    transitions, initialProbabilities = estimate_chord_transitions(chord_mvs, num_chords=num_chords)
     return models, transitions, initialProbabilities
 
 def estimate_chords(chroma, models, transitions, initialProbabilities,num_chords=7):

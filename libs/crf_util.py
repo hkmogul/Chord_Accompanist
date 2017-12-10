@@ -4,6 +4,22 @@ chroma_scale = 1
 
 from dataset_utils import *
 
+def create_mode_variant_feature_dict(data):
+    chord_seq = data['chord_seq2']
+    chroma_seq = data['chroma_seq2']
+    feature_list = []
+    labels = []
+    for i in range(0, chroma_seq.shape[0]):
+        # normalize chroma
+        chroma_seq[i,:] = chroma_seq[i,:]/max(chroma_seq[i,:].sum(), 0.00001)
+        feature_dict = {}
+        for j in range(0, chroma_seq.shape[1]):
+            feature_dict[str(j)] = chroma_seq[i,j]
+        feature_list.append(feature_dict)
+        labels.append(chord_roman_labels[chord_seq[i]])
+    return feature_list, labels
+
+
 def feature_dict_from_chroma(chroma, chord_sequence):
     feature_list = []
     labels = []

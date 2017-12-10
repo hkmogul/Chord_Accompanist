@@ -36,6 +36,37 @@ class Chord:
         self.label_index = label_index
         self.used = False # for figuring out the alignment
 
+
+mode_variant_triads = {
+    "i":np.array([1,0,0,1,0,0,0,1,0,0,0,0]),
+    "ii":np.array([0,0,1,0,0,1,0,0,0,1,0,0]),
+    "iii":np.array([0,0,0,0,1,0,0,1,0,0,0,1]),
+    "iv":np.array([1,0,0,0,0,1,0,0,1,0,0,0]),
+    "v":np.array([0,0,1,0,0,0,0,1,0,0,1,0]),
+    "vi":np.array([1,0,0,0,1,0,0,0,0,1,0,0]),
+    "vii":np.array([0,0,1,0,0,0,1,0,0,0,0,1]),
+    "I":np.array([1,0,0,0,1,0,0,1,0,0,0,0]),
+    "II":np.array([0,0,1,0,0,0,1,0,0,1,0,0]),
+    "III":np.array([0,0,0,0,1,0,0,0,1,0,0,1]),
+    "IV":np.array([1,0,0,0,0,1,0,0,0,1,0,0]),
+    "V":np.array([0,0,1,0,0,0,0,1,0,0,0,1]),
+    "VI":np.array([1,0,0,1,0,0,0,0,1,0,0,0]),
+    "VII":np.array([0,0,1,0,0,1,0,0,0,0,1,0])
+}
+def score_single_chord_accuracy(chord_e, chord_a, threshold=3):
+    ex_arr = mode_variant_triads[chord_e]
+    actual_arr = mode_variant_triads[chord_a]
+    common= (ex_arr*actual_arr)
+    if common.sum() >= threshold:
+        return 1
+    return common.sum()/3
+
+def score_chord_accuracy(chord_expected, chord_actual, threshold=3):
+    scores = []
+    for i in range(len(chord_expected)):
+        scores.append(score_single_chord_accuracy(chord_expected[i], chord_actual[i], threshold=threshold))
+    return scores, sum(scores)/len(scores)
+
 def roman_numeral_to_number(numeric, ignoreCase = True):
     if ignoreCase:
         numeric = numeric.lower()
@@ -43,6 +74,9 @@ def roman_numeral_to_number(numeric, ignoreCase = True):
         if numeric == num:
             return numeral2number[num]
     return 0
+
+
+
 
 def get_note_data(filename, distThresh = .99):
     ''' Reads a mel file to get scale numbers, onsets, and interpolation of the duration of the notes '''
