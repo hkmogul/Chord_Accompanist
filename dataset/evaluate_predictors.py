@@ -56,7 +56,7 @@ for p in pkls:
     all_crf_scores.append(score_avg)
 
     # evaluate HMM scores
-    hmmPath = hmm_utils.estimate_chords(chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
+    hmmPath = hmm_utils.estimate_chords(chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"], num_chords=len(chord_roman_labels))
     hmmPathStr = []
     for h in hmmPath:
         hmmPathStr.append(chord_roman_labels[h])

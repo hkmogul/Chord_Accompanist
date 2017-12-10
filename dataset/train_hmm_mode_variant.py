@@ -81,6 +81,9 @@ for p in pkls:
     if count == test_index:
         test_chroma = chroma
         test_label = chord_sequence
+        test_labelStr = []
+        for c in chord_sequence:
+            test_labelStr.append(chord_roman_labels[c])
         test_transitions = get_move_list(labelIntList)
         test_key = key
         test_isMinor = isMinor
@@ -98,6 +101,9 @@ models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_
 # for model in models:
 #     print(model)
 path = estimate_chords(test_chroma, models, transitions, priors, num_chords=len(chord_roman_labels))
+pathStr = []
+for p in path:
+    pathStr.append(chord_roman_labels[p])
 print("-----")
 hmm = {"models":models, "transitions":transitions, "priors":priors}
 if args.outfile is not None:
@@ -118,3 +124,9 @@ plt.show()
 plt.figure()
 plt.imshow(test_chroma.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
 plt.show()
+
+print(pathStr)
+print(test_labelStr)
+
+scores,avg = score_chord_accuracy(pathStr, test_labelStr, threshold=2)
+print(avg)
