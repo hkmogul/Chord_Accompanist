@@ -10,12 +10,15 @@ import random
 import pickle 
 import matplotlib.pyplot as plt
 import scipy.io.wavfile
+import sklearn_crfsuite
+
 sys.path.append("libs")
 import pitch_estimation
 import dataset_utils
 import beat_util
 import synth_utils
 import hmm_utils
+import crf_util
 
 key_identifier_file = "key_identifier.p"
 hmm_file = "hmm.p"
@@ -121,3 +124,11 @@ librosa.output.write_wav(args.outfile, y=stereo, sr=sr)
 
 if args.outmidi is not None:
     mid.write(args.outmidi)
+if major:
+    crf_file = "crfMajor.p"
+else:
+    crf_file = "crfMinor.p"
+crf = pickle.load(open(crf_file, "rb"))
+feats = crf_util.mode_variant_feature_dict(group_chroma)
+chords = crf.predict_single(feats)
+print(chords)

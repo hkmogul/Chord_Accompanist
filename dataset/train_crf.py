@@ -44,7 +44,6 @@ test_index = randint(0, len(pkls))
 count = 0
 features = []
 labels = []
-chroma_occurence = np.zeros((7,12))
 for p in pkls:
     # so we need the chroma and chord_seq objects from the output
     data = pickle.load(open(p, "rb"))
@@ -88,8 +87,11 @@ plt.title("CRF Chord Prediction for Song {}".format(title))
 plt.legend()
 plt.show()
 
-scores, score_avg = score_chord_accuracy(prediction, test_labels, threshold=1)
+scores, score_avg = score_chord_accuracy(prediction, test_labels, threshold=2)
 plt.figure()
 plt.plot(scores)
 plt.show()
 print(score_avg)
+
+if args.outfile is not None:
+    pickle.dump(crf, open(args.outfile, "wb"))

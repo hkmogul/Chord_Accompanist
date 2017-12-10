@@ -91,14 +91,12 @@ for p in pkls:
     count += 1
 
 print("-----")
-print(chord_mvs)
 # print(chord_seq.shape)
 # print(all_chroma.shape)
 # print("------")
 models, transitions, priors =train_gaussian_models(all_chroma, chord_seq, chord_mvs, num_chords=len(chord_roman_labels))
 # for model in models:
 #     print(model)
-print(transitions.shape)
 path = estimate_chords(test_chroma, models, transitions, priors, num_chords=len(chord_roman_labels))
 print("-----")
 hmm = {"models":models, "transitions":transitions, "priors":priors}
