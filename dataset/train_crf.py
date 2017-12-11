@@ -55,7 +55,7 @@ for p in pkls:
     feats, labelList = create_mode_variant_feature_dict(data)
     features.append(feats)
     labels.append(labelList)
-    if count == test_index:
+    if test_index == count:
         test_chroma = chroma
         title = data['title']
         print("Test file is {}, chords are \n{}".format(title, chord_sequence))
@@ -69,7 +69,7 @@ for p in pkls:
 
 
 print("Training CRF")
-crf = sklearn_crfsuite.CRF(all_possible_transitions =True, max_iterations=100)
+crf = sklearn_crfsuite.CRF(all_possible_transitions =True, all_possible_states=True)
 crf.fit(features, labels)
 print("Predicting single file")
 print("Expected is \n{}".format(test_labels))
@@ -83,13 +83,20 @@ print("--------")
 plt.figure()
 plt.plot(test_labelInt,"r--",label="Ground Truth")
 plt.plot(predictionInt, "g", label="CRF Prediction")
-plt.title("CRF Chord Prediction for Song {}".format(title))
+plt.title("CRF Chord Prediction for Song: {}".format(title))
+axes = plt.gca()
+axes.set_ylim([-1,len(chord_roman_labels)])
+y = list(range(len(chord_roman_labels)))
+plt.yticks(y, chord_roman_labels)
+plt.ylabel("Chord Label")
 plt.legend()
 plt.show()
 
-scores, score_avg = score_chord_accuracy(prediction, test_labels, threshold=2)
+th = 2
+scores, score_avg = score_chord_accuracy(prediction, test_labels, threshold=th)
 plt.figure()
 plt.plot(scores)
+plt.title("Chord Accuracy Per Frame for Song: {}. Threshold: {}".format(title, th))
 plt.show()
 print(score_avg)
 

@@ -43,9 +43,6 @@ def segment_onsets(data=None, sr=None, filename=None, group_measures=False, grou
         for o in onsets:
             if o >= n and o <= n0:
                 ons.append(o)
-        print(n)
-        print(n0)
-        print(ons)
         if len(ons) > 0:
             beat_data.append(ons)
 
@@ -90,7 +87,6 @@ def normalize_measure(onset_data):
     
 def stretch_measure(onset_data, length_data=16):
     od = np.copy(onset_data)
-    print(onset_data)
     if od.max() != 1:
         od = normalize_measure(od)
     return od*length_data

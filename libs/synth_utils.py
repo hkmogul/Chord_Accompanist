@@ -45,19 +45,18 @@ def create_pretty_midi(chord_sequences, chord_times, onset_times, instrument_nam
             duration = 0.25
         else:
             duration = abs((onset_times[i+1] - time)*.5) * .5
-            print(duration)
 
         chord_index = get_chord_index(time, chord_times)
-        chord_numeral = dataset_utils.number2numeral[chord_sequences[chord_index]+1].upper()
+        #chord_numeral = dataset_utils.number2numeral[chord_sequences[chord_index]+1].upper()
         #print("Creating chord {}, key is {}".format(chord_numeral, note_names[int(key)]))
         if time -prev_onset_time < 0.1:
             velocity = int(prev_velocity * .75)
         else:
             velocity = 50
-        triad_key = (chord_numeral, major)
-        activations = chord_triads[triad_key]
+        #triad_key = (chord_numeral, major)
+        activations = dataset_utils.mode_variant_triads[chord_sequences[chord_index]]
         if key != 0:
-            activations= np.roll(chord_triads[triad_key], key)
+            activations= np.roll(activations, key)
         #print(activations)
         for i in range(12):
             if activations[i]== 0:

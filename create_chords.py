@@ -29,6 +29,7 @@ parser.add_argument("-outfile", dest = "outfile",help="destination file of mixed
 parser.add_argument("-outMidi", dest="outmidi", help="destination file of MIDI")
 parser.add_argument("-ismajor", dest="ismajor", help="True for using major chord progression, False otherwise")
 parser.add_argument("-timeSig", dest="timeSig", help="Number of beats per measure")
+parser.add_argument("-key", dest="key", help="Optional: key to use")
 
 args = parser.parse_args()
 if args.ismajor is None:
@@ -50,8 +51,9 @@ if args.timeSig is None:
 else:
     timeSig = int(args.timeSig)
 if args.onsetfile is None:
-    onset_sig = np.zeros((1000))
+    onset_sig = np.zeros((beat_util.signature_len))
     onset_sig[0] = 1
+    onset_sig[int(len(onset_sig)/2)] = 1
 else:
     onset_signatures = pickle.load(open(args.onsetfile, "rb"))
     onset_sig = random.choice(onset_signatures)
@@ -66,11 +68,14 @@ print("Predicting chords from true chroma...")
 true_beats, true_chroma = pitch_estimation.true_beat_sync_chroma(data=y,fs=sr)
 data_usage_vector = true_chroma.sum(axis=0)
 print(data_usage_vector.shape)
-key = key_identifier.predict(data_usage_vector.reshape(1, -1))
-print("Predicted key is {}".format(synth_utils.note_names[key[0]]))
-if key[0] != 0:
+if args.key is None:
+    key = key_identifier.predict(data_usage_vector.reshape(1, -1))[0]
+    print("Predicted key is {}".format(synth_utils.note_names[key]))
+else:
+    key = dataset_utils.noteList.index(args.key)
+if key != 0:
     print("Rolling chroma to match the key")
-    true_chroma = np.roll(true_chroma, key[0], axis=0)
+    true_chroma = np.roll(true_chroma, key, axis=0)
 # group by the time signature
 group_beats,group_chroma = pitch_estimation.group_beat_chroma(true_beats, true_chroma, group_num=timeSig)
 for i in range(group_chroma.shape[0]):
@@ -83,11 +88,16 @@ for i in range(group_chroma.shape[0]):
     # renormalize
     group_chroma[i,:] = group_chroma[i,:]/max(0.0001, group_chroma[i,:].sum())
 
-chords = hmm_utils.estimate_chords(group_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"])
-allowed_chords = [0,3,4]
-chords_r = synth_utils.riemann_transform(chords, allowed_chords)
-for i in range(len(chords)):
-    print("Chord: {}, post transform:{}".format(chords[i], chords_r[i]))
+chords = hmm_utils.estimate_chords(group_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"], num_chords=len(dataset_utils.chord_roman_labels))
+if major:
+    crf_file = "crfMajor.p"
+else:
+    crf_file = "crfMinor.p"
+#crf_file = "crfAll.p"
+crf = pickle.load(open(crf_file, "rb"))
+feats = crf_util.mode_variant_feature_dict(group_chroma)
+chords = crf.predict_single(feats)
+print(chords)
 # regroup to spread onset pattern
 
 
@@ -123,12 +133,5 @@ print("Writing mixed file to {}".format(args.outfile))
 librosa.output.write_wav(args.outfile, y=stereo, sr=sr)
 
 if args.outmidi is not None:
+    print("Writing MIDI file to {}".format(args.outmidi))
     mid.write(args.outmidi)
-if major:
-    crf_file = "crfMajor.p"
-else:
-    crf_file = "crfMinor.p"
-crf = pickle.load(open(crf_file, "rb"))
-feats = crf_util.mode_variant_feature_dict(group_chroma)
-chords = crf.predict_single(feats)
-print(chords)

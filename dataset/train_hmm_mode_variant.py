@@ -117,12 +117,17 @@ plt.title("Chord transitions for Song: {} ".format(test_file))
 plt.plot(path, "g",label="HMM Prediction")
 axes = plt.gca()
 axes.set_ylim([-1,len(chord_roman_labels)])
+y = list(range(len(chord_roman_labels)))
+plt.yticks(y, chord_roman_labels)
 plt.legend()
 plt.show()
 
 # plot mock beat sync chroma
 plt.figure()
 plt.imshow(test_chroma.transpose(), interpolation='nearest', aspect='auto', origin='bottom', cmap='gray_r')
+plt.title("Mock Key-Invariant Chromagram for Song: {}".format(test_file))
+plt.ylabel("Scale Degree")
+plt.xlabel("Half measure")
 plt.show()
 
 print(pathStr)
@@ -130,3 +135,8 @@ print(test_labelStr)
 
 scores,avg = score_chord_accuracy(pathStr, test_labelStr, threshold=2)
 print(avg)
+
+plt.figure()
+plt.plot(scores)
+plt.title("Accuracy per Chord for Song: {}".format(test_file))
+plt.show()
