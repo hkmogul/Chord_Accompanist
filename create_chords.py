@@ -100,11 +100,13 @@ for i in range(group_chroma.shape[0]):
 
 
 if use_crf:
+    print("Predicting chords using a CRF")
     crf = pickle.load(open(crf_file, "rb"))
     feats = crf_util.mode_variant_feature_dict(group_chroma)
     chords = crf.predict_single(feats)
     print("CRF Prediction: {}".format(chords))
 else:
+    print("Predicting chords using an HMM...")
     chords_r = hmm_utils.estimate_chords(group_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"], num_chords=len(dataset_utils.chord_roman_labels))
     chords = []
     for c in chords_r:
@@ -127,6 +129,7 @@ if sys.platform == 'win32':
 else:
     synth = mid.fluidsynth(fs=sr)
 
+# pad the uneven one
 if synth.shape[0] > y.shape[0]:
     # pad y with zeros of the difference at the end
     stereo_l = np.append(y, values=[0]*(synth.shape[0]-y.shape[0]))
@@ -138,7 +141,7 @@ else:
     stereo_l = y
     stereo_r = synth
 
-stereo = np.stack([stereo_l, stereo_r], axis =1)
+stereo = np.stack([stereo_l, stereo_r], axis =1).astype(np.int16)
 
 # stereo = np.asarray(stereo, dtype=np.int16)
 # print(stereo.max())
