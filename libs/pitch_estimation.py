@@ -60,6 +60,7 @@ def beat_sync_chroma(data, fs, midi=None, tHop=0.01):
 
 def true_beat_sync_chroma(data, fs, frame_len=512):
     tempo, beats = librosa.beat.beat_track(y=data, sr=fs, units='frames', hop_length=frame_len, trim=True)
+    print("Estimated tempo is {}".format(tempo))
     chroma = librosa.feature.chroma_cqt(y=data, sr=fs, hop_length=frame_len)
     sync_chroma = librosa.util.sync(chroma, beats)
     return librosa.frames_to_time(beats, sr=fs, hop_length=frame_len), sync_chroma.transpose()

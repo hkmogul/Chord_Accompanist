@@ -30,7 +30,7 @@ parser.add_argument("-outMidi", dest="outmidi", help="destination file of MIDI")
 parser.add_argument("-ismajor", dest="ismajor", help="True for using major chord progression, False otherwise")
 parser.add_argument("-timeSig", dest="timeSig", help="Number of beats per measure")
 parser.add_argument("-key", dest="key", help="Optional: key to use")
-
+parser.add_argument("-mode", dest='mode', help='which predictor system to use: crf or hmm. defaults to crf')
 args = parser.parse_args()
 if args.ismajor is None:
     major = True
@@ -43,8 +43,10 @@ else:
 
 if major:
     hmm_file = "hmmMajor.p"
+    crf_file = "crfMajor.p"
 else:
     hmm_file = "hmmMinor.p"
+    crf_file = "crfMinor.p"
 
 if args.timeSig is None:
     timeSig = 4
@@ -57,6 +59,14 @@ if args.onsetfile is None:
 else:
     onset_signatures = pickle.load(open(args.onsetfile, "rb"))
     onset_sig = random.choice(onset_signatures)
+
+if args.mode is None:
+    use_crf = True
+    print("Defaulting to using a CRF for prediction")
+elif args.mode.lower() == "crf":
+    use_crf = True
+else:
+    use_crf = False
 
 key_identifier = pickle.load(open(key_identifier_file, "rb"))
 hmm_data = pickle.load(open(hmm_file,"rb"))
@@ -88,16 +98,20 @@ for i in range(group_chroma.shape[0]):
     # renormalize
     group_chroma[i,:] = group_chroma[i,:]/max(0.0001, group_chroma[i,:].sum())
 
-chords = hmm_utils.estimate_chords(group_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"], num_chords=len(dataset_utils.chord_roman_labels))
-if major:
-    crf_file = "crfMajor.p"
+
+if use_crf:
+    crf = pickle.load(open(crf_file, "rb"))
+    feats = crf_util.mode_variant_feature_dict(group_chroma)
+    chords = crf.predict_single(feats)
+    print("CRF Prediction: {}".format(chords))
 else:
-    crf_file = "crfMinor.p"
-#crf_file = "crfAll.p"
-crf = pickle.load(open(crf_file, "rb"))
-feats = crf_util.mode_variant_feature_dict(group_chroma)
-chords = crf.predict_single(feats)
-print(chords)
+    chords_r = hmm_utils.estimate_chords(group_chroma, hmm_data["models"], hmm_data["transitions"], hmm_data["priors"], num_chords=len(dataset_utils.chord_roman_labels))
+    chords = []
+    for c in chords_r:
+        chords.append(dataset_utils.chord_roman_labels[c])
+    print("HMM prediction: {}".format(chords))
+
+
 # regroup to spread onset pattern
 
 

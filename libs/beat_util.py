@@ -3,9 +3,9 @@ import librosa
 import numpy as np
 import pretty_midi
 
-signature_len = 16
+signature_len = 1000
 
-def segment_onsets(data=None, sr=None, filename=None, group_measures=False, group_num=2, threshold =1.25):
+def segment_onsets(data=None, sr=None, filename=None, group_measures=False, group_num=2, threshold =1.25, tempo_est = None):
     """ Segment an audio file or preloaded data's onsets into each beat
 
     Args:
@@ -25,8 +25,10 @@ def segment_onsets(data=None, sr=None, filename=None, group_measures=False, grou
 
     # get onsets
     onset_strength = librosa.onset.onset_strength(y=data, sr=sr)
-    tempo_est = librosa.beat.tempo(onset_envelope=onset_strength, sr = sr)
-    tempo = tempo_est[0]
+    if tempo_est is None:
+        tempo_est = librosa.beat.tempo(onset_envelope=onset_strength, sr = sr)
+        print("Estimated tempo is {}".format(tempo_est))
+        tempo = tempo_est[0]
     # set trim to true because we want to segment the beats
     t2,beats = librosa.beat.beat_track(onset_envelope=onset_strength, sr = sr, bpm=tempo, trim=True)
     if beats.shape[0] == 0:
