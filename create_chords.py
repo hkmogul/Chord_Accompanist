@@ -141,8 +141,7 @@ else:
     stereo_l = y
     stereo_r = synth
 
-stereo = np.stack([stereo_l, stereo_r], axis =1).astype(np.int16)
-
+stereo = np.stack([stereo_l, stereo_r], axis =1)
 # stereo = np.asarray(stereo, dtype=np.int16)
 # print(stereo.max())
 # print(stereo.min())

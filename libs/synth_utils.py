@@ -8,18 +8,18 @@ np.array([0,0,0,0,0,0,0,0,0,0,0,0])
 # triads based on if the key is major or minor
 note_names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
 chord_triads = {
-    ("I",True):np.array([1,0,0,0,1,0,0,1,0,0,0,0]), # major chord
-    ("II",True):np.array([0,0,1,0,0,1,0,0,0,1,0,0]), #minor 2 chord
-    ("III", True):np.array([0,0,0,0,1,0,0,1,0,0,0,1]), # minor 3 chord
-    ("IV", True):np.array([1,0,0,0,0,1,0,0,0,1,0,0]), # major chord
-    ("V",True):np.array([0,0,1,0,0,0,0,1,0,0,0,1]), # perfect fifth
-    ("VI", True):np.array([1,0,0,0,1,0,0,0,0,1,0,0]), # minor 6th
-    ("VII",True):np.array([0,0,1,0,0,0,1,0,0,0,0,1]), # diminished 7th
-    ("I",False):np.array([1,0,0,1,0,0,0,1,0,0,0,0]), #minor first
-    ("II",False):np.array([0,0,1,0,0,1,0,0,1,0,0,0]), # diminished 2nd
+    ("I",True):np.array(    [1,0,0,0,1,0,0,1,0,0,0,0]), # major chord
+    ("II",True):np.array(   [0,0,1,0,0,1,0,0,0,1,0,0]), #minor 2 chord
+    ("III", True):np.array( [0,0,0,0,1,0,0,1,0,0,0,1]), # minor 3 chord
+    ("IV", True):np.array(  [1,0,0,0,0,1,0,0,0,1,0,0]), # major chord
+    ("V",True):np.array(    [0,0,1,0,0,0,0,1,0,0,0,1]), # perfect fifth
+    ("VI", True):np.array(  [1,0,0,0,1,0,0,0,0,1,0,0]), # minor 6th
+    ("VII",True):np.array(  [0,0,1,0,0,0,1,0,0,0,0,1]), # diminished 7th
+    ("I",False):np.array(   [1,0,0,1,0,0,0,1,0,0,0,0]), #minor first
+    ("II",False):np.array(  [0,0,1,0,0,1,0,0,1,0,0,0]), # diminished 2nd
     ("III", False):np.array([0,0,0,0,1,0,0,0,1,0,0,1]), # major third
-    ("IV", False):np.array([1,0,0,0,0,1,0,0,1,0,0,0]), # minor fourth
-    ("V",False):np.array([0,0,1,0,0,0,0,1,0,0,1,0]), #minor fifth (assume harmonic minor)
+    ("IV", False):np.array( [1,0,0,0,0,1,0,0,1,0,0,0]), # minor fourth
+    ("V",False):np.array(   [0,0,1,0,0,0,0,1,0,0,1,0]), #minor fifth (assume harmonic minor)
     ("VI", False):np.array([1,0,0,1,0,0,0,0,1,0,0,0]), # major 6th
     ("VII",False):np.array([0,0,1,0,0,1,0,0,0,0,1,0]), # major 7th
 }
